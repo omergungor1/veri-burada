@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# VeriBurada — Google Maps Scraper Yönetim Sistemi
 
-## Getting Started
+Supabase kuyruk + Next.js admin panel + Chrome extension worker.
 
-First, run the development server:
+## Parçalar
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. **Admin Panel** (`npm run dev`) — proje oluşturma, kuyruk, worker yönetimi, işletmeler, CSV
+2. **Extension Worker** (`map-scrapper-extension/`) — Auto Mode ile LIST/DETAIL iş çeken otonom scraper
+3. **Supabase** — tablolar, atomic claim RPC, RLS (`supabase/migrations/`)
+
+## Kurulum
+
+### 1. Ortam
+
+`.env.local.example` dosyasını `.env.local` olarak kopyalayın (veya mevcut `.env.local` kullanın):
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`service_role` anahtarını client veya extension içine koymayın.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 2. Admin kullanıcısı
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Supabase Dashboard → Authentication → Users üzerinden e-posta/şifre ile admin kullanıcı oluşturun. Signup UI yoktur.
 
-## Learn More
+### 3. Admin paneli
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`http://localhost:3000/login`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 4. Extension
 
-## Deploy on Vercel
+1. `chrome://extensions` → Developer mode
+2. Load unpacked → `map-scrapper-extension`
+3. `https://www.google.com/maps` açın
+4. Panelde **START** ile Auto Mode başlatın
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Mimari özet
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- LIST: her search term bir `scan_task`
+- DETAIL: `businesses.detail_status = pending` işleri batch (≤100)
+- Claim: `claim_next_work` + `FOR UPDATE SKIP LOCKED`
+- Worker: anon key + SECURITY DEFINER RPC
+- `place_id` UNIQUE; ilişkiler `scan_results` üzerinden
+
+## Notlar
+
+- MAX_DETAIL şimdilik implemente edilmedi; şema uyumlu.
+- Lease varsayılan 900 sn; heartbeat çalışan işlerde lease uzatır.
