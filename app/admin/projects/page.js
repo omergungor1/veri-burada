@@ -22,6 +22,7 @@ import {
   Th,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import ExportModal from "@/components/export-modal";
 
 function projectProgress(p) {
   return (
@@ -45,6 +46,7 @@ export default function ProjectsPage() {
   );
   const [actionError, setActionError] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [exportProject, setExportProject] = useState(null);
 
   async function onRetryFailures(project) {
     const n = failureCount(project);
@@ -66,7 +68,15 @@ export default function ProjectsPage() {
 
   function menuItems(p) {
     const fails = failureCount(p);
+    const jobIds = (p.scan_jobs || []).map((j) => j.id);
     return [
+      {
+        key: "export-csv",
+        label: "CSV dışa aktar",
+        icon: "download",
+        disabled: !jobIds.length,
+        onClick: () => setExportProject(p),
+      },
       {
         key: "retry-failures",
         label:
@@ -238,6 +248,13 @@ export default function ProjectsPage() {
           </Card>
         </>
       ) : null}
+
+      <ExportModal
+        open={!!exportProject}
+        onClose={() => setExportProject(null)}
+        project={exportProject}
+        jobIds={(exportProject?.scan_jobs || []).map((j) => j.id)}
+      />
     </>
   );
 }
