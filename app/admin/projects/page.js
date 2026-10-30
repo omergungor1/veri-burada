@@ -14,12 +14,14 @@ import {
   EmptyState,
   ErrorBox,
   LoadingBlock,
+  Modal,
   PageHeader,
   PhaseProgress,
   StatusBadge,
   Td,
   TableWrap,
   Th,
+  cx,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import ExportModal from "@/components/export-modal";
@@ -38,6 +40,45 @@ function failureCount(p) {
   return (list.failed || 0) + (detail.failed || 0);
 }
 
+const META_MAX = 36;
+
+function projectMeta(project) {
+  return [project?.keyword, project?.location].filter(Boolean).join(" · ");
+}
+
+function shortenMeta(text) {
+  if (!text || text.length <= META_MAX) return { text: text || "", truncated: false };
+  const slice = text.slice(0, META_MAX);
+  const lastComma = slice.lastIndexOf(",");
+  const cut = lastComma > 16 ? slice.slice(0, lastComma) : slice.replace(/[,\s]+$/, "");
+  return { text: cut + "…", truncated: true };
+}
+
+const metaClass =
+  "w-full whitespace-normal break-words text-left text-xs leading-snug text-muted";
+
+function ProjectMetaLine({ project, onOpen }) {
+  const full = projectMeta(project);
+  const { text, truncated } = shortenMeta(full);
+  if (!truncated) {
+    return <p className={metaClass}>{full}</p>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onOpen(project);
+      }}
+      title="Tümünü göster"
+      className={cx(metaClass, "hover:text-forest hover:underline")}
+    >
+      {text}
+    </button>
+  );
+}
+
 export default function ProjectsPage() {
   const { data, error, loading, reload } = useAsyncData(
     () => listProjects(createClient()),
@@ -47,6 +88,7 @@ export default function ProjectsPage() {
   const [actionError, setActionError] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [exportProject, setExportProject] = useState(null);
+  const [metaProject, setMetaProject] = useState(null);
 
   async function onRetryFailures(project) {
     const n = failureCount(project);
@@ -94,6 +136,7 @@ export default function ProjectsPage() {
 
   return (
     <>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
         title="Projeler"
         description="Tarama projeleri — liste ve detay ilerlemesi"
@@ -130,20 +173,20 @@ export default function ProjectsPage() {
       {data && data.length > 0 ? (
         <>
           {/* Mobil: kartlar */}
-          <div className="space-y-3 md:hidden">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto md:hidden">
             {data.map((p) => {
               const { list, detail } = projectProgress(p);
               return (
                 <Card key={p.id} className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <Link href={`/admin/projects/${p.id}`} className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">
-                        {p.name}
-                      </p>
-                      <p className="truncate text-xs text-zinc-500">
-                        {p.keyword} · {p.location}
-                      </p>
-                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/admin/projects/${p.id}`} className="block">
+                        <p className="truncate font-medium text-ink">
+                          {p.name}
+                        </p>
+                      </Link>
+                      <ProjectMetaLine project={p} onOpen={setMetaProject} />
+                    </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <StatusBadge status={p.status} />
                       <ActionMenu items={menuItems(p)} />
@@ -165,7 +208,7 @@ export default function ProjectsPage() {
                         emptyLabel="Liste sonrası"
                       />
                     </div>
-                    <p className="mt-2 text-xs text-zinc-500">
+                    <p className="mt-2 text-xs text-muted">
                       {formatNumber(list.found)} işletme · {projectScanDuration(p)}
                     </p>
                   </Link>
@@ -175,18 +218,21 @@ export default function ProjectsPage() {
           </div>
 
           {/* Masaüstü: tablo */}
-          <Card className="hidden md:block">
-            <TableWrap>
-              <thead>
+          <Card className="hidden min-h-0 flex-1 flex-col overflow-hidden md:flex">
+            <TableWrap
+              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+              tableClassName="table-fixed"
+            >
+              <thead className="sticky top-0 z-10">
                 <tr>
-                  <Th>Proje</Th>
-                  <Th>Durum</Th>
-                  <Th className="w-52">Liste tarama</Th>
-                  <Th className="w-52">Detay tarama</Th>
-                  <Th>İşletme</Th>
-                  <Th>Süre</Th>
-                  <Th>Oluşturulma</Th>
-                  <Th className="w-12">
+                  <Th className="w-[22%] sticky top-0">Proje</Th>
+                  <Th className="w-[10%] sticky top-0">Durum</Th>
+                  <Th className="w-[16%] sticky top-0">Liste tarama</Th>
+                  <Th className="w-[16%] sticky top-0">Detay tarama</Th>
+                  <Th className="w-[8%] sticky top-0">İşletme</Th>
+                  <Th className="w-[10%] sticky top-0">Süre</Th>
+                  <Th className="w-[12%] sticky top-0">Oluşturulma</Th>
+                  <Th className="w-10 sticky top-0">
                     <span className="sr-only">İşlemler</span>
                   </Th>
                 </tr>
@@ -197,18 +243,16 @@ export default function ProjectsPage() {
                   return (
                     <tr
                       key={p.id}
-                      className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                      className="hover:bg-pale"
                     >
                       <Td>
                         <Link
                           href={`/admin/projects/${p.id}`}
-                          className="font-medium text-zinc-900 hover:text-green-700 dark:text-zinc-100 dark:hover:text-green-400"
+                          className="font-medium text-ink hover:text-forest"
                         >
                           {p.name}
                         </Link>
-                        <p className="text-xs text-zinc-500">
-                          {p.keyword} · {p.location}
-                        </p>
+                        <ProjectMetaLine project={p} onOpen={setMetaProject} />
                       </Td>
                       <Td>
                         <StatusBadge status={p.status} />
@@ -219,6 +263,7 @@ export default function ProjectsPage() {
                           completed={list.completed}
                           failed={list.failed}
                           total={list.total}
+                          className="min-w-0"
                         />
                       </Td>
                       <Td>
@@ -227,11 +272,12 @@ export default function ProjectsPage() {
                           completed={detail.completed}
                           failed={detail.failed}
                           total={detail.total}
+                          className="min-w-0"
                           emptyLabel="Liste sonrası"
                         />
                       </Td>
                       <Td className="tabular-nums">{formatNumber(list.found)}</Td>
-                      <Td className="whitespace-nowrap tabular-nums text-zinc-600 dark:text-zinc-300">
+                      <Td className="whitespace-nowrap tabular-nums text-muted">
                         {projectScanDuration(p)}
                       </Td>
                       <Td className="whitespace-nowrap">
@@ -248,6 +294,7 @@ export default function ProjectsPage() {
           </Card>
         </>
       ) : null}
+    </div>
 
       <ExportModal
         open={!!exportProject}
@@ -255,6 +302,29 @@ export default function ProjectsPage() {
         project={exportProject}
         jobIds={(exportProject?.scan_jobs || []).map((j) => j.id)}
       />
+
+      <Modal
+        open={!!metaProject}
+        onClose={() => setMetaProject(null)}
+        title={metaProject?.name || "Proje bilgisi"}
+      >
+        <dl className="space-y-4 text-sm">
+          <div>
+            <dt className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              Anahtar kelime
+            </dt>
+            <dd className="text-ink">{metaProject?.keyword || "—"}</dd>
+          </div>
+          <div>
+            <dt className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              Lokasyon
+            </dt>
+            <dd className="thin-scroll max-h-72 overflow-y-auto whitespace-pre-wrap break-words text-ink">
+              {metaProject?.location || "—"}
+            </dd>
+          </div>
+        </dl>
+      </Modal>
     </>
   );
 }

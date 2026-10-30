@@ -111,7 +111,7 @@ export default function WorkersPage() {
       <ErrorBox message={error} onRetry={reload} />
       <ErrorBox message={actionError} />
       {notice ? (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
+        <div className="mb-4 rounded-lg border border-mint/40 bg-pale px-3 py-2 text-sm text-forest">
           {notice}
         </div>
       ) : null}
@@ -119,7 +119,7 @@ export default function WorkersPage() {
       {loading && !data ? <LoadingBlock /> : null}
 
       {summary ? (
-        <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <div className="mb-5 grid min-w-0 grid-cols-2 gap-3 md:grid-cols-5">
           <StatCard label="Toplam" value={summary.total} />
           <StatCard label="Çevrimiçi" value={summary.online} tone="green" />
           <StatCard label="Çalışıyor" value={summary.working} tone="green" />
@@ -142,18 +142,18 @@ export default function WorkersPage() {
               />
             </Card>
           ) : (
-            <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+            <div className="grid min-w-0 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
               {visible.map((w) => {
                 const status = effectiveStatus(w, onlineSeconds);
                 return (
-                  <Card key={w.id} className="flex flex-col p-4">
+                  <Card key={w.id} className="flex min-w-0 flex-col p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+                        <p className="truncate font-medium text-ink">
                           {w.name || "İsimsiz işçi"}
                         </p>
                         <p
-                          className="truncate font-mono text-xs text-zinc-500"
+                          className="truncate font-mono text-xs text-muted"
                           title={w.worker_key}
                         >
                           {w.worker_key}
@@ -187,12 +187,12 @@ export default function WorkersPage() {
                     </dl>
 
                     {w.current_search_term ? (
-                      <p className="mt-2 break-words rounded-lg bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-600 dark:bg-zinc-950 dark:text-zinc-400">
+                      <p className="mt-2 break-words rounded-lg bg-pale px-2.5 py-1.5 text-xs text-muted">
                         {w.current_search_term}
                       </p>
                     ) : null}
                     {w.requested_action ? (
-                      <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                      <p className="mt-2 text-xs text-forest">
                         Bekleyen komut:{" "}
                         <strong>
                           {WORKER_ACTION_LABELS[w.requested_action] ||
@@ -201,7 +201,7 @@ export default function WorkersPage() {
                       </p>
                     ) : null}
 
-                    <div className="mt-4 flex flex-wrap gap-1.5 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                    <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border pt-3">
                       {getVisibleWorkerActions(w, status).map((a) => (
                         <Button
                           key={a.key}
@@ -236,8 +236,8 @@ export default function WorkersPage() {
 function Item({ label, children }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs text-zinc-500 dark:text-zinc-400">{label}</dt>
-      <dd className="truncate font-medium text-zinc-800 dark:text-zinc-200">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="truncate font-medium text-ink">
         {children}
       </dd>
     </div>

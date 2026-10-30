@@ -110,7 +110,7 @@ export default function QueuePage() {
         }
       />
 
-      <div className="mb-3 inline-flex rounded-lg border border-zinc-200 bg-white p-0.5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="mb-3 inline-flex rounded-lg border border-border bg-white p-0.5">
         {KINDS.map((k) => (
           <button
             key={k.key}
@@ -118,8 +118,8 @@ export default function QueuePage() {
             onClick={() => changeKind(k.key)}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               kind === k.key
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                ? "bg-green text-white"
+                : "text-muted hover:bg-pale hover:text-ink"
             }`}
           >
             {k.label}
@@ -128,7 +128,7 @@ export default function QueuePage() {
       </div>
 
       <Card>
-        <div className="border-b border-zinc-200 p-3 dark:border-zinc-800">
+        <div className="border-b border-border p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Tabs
               tabs={tabs}
@@ -184,11 +184,11 @@ export default function QueuePage() {
                   <tr key={t.id}>
                     <Td className="max-w-xs">
                       <span className="break-words">{t.search_term || "-"}</span>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-muted">
                         {TASK_TYPE_LABELS[t.task_type] || t.task_type}
                       </p>
                       {t.last_error ? (
-                        <p className="break-words text-xs text-red-600 dark:text-red-400">
+                        <p className="break-words text-xs text-red-600">
                           {t.last_error}
                         </p>
                       ) : null}
@@ -197,7 +197,7 @@ export default function QueuePage() {
                       {project ? (
                         <Link
                           href={`/admin/projects/${project.id}`}
-                          className="text-green-700 hover:underline dark:text-green-400"
+                          className="text-forest hover:underline"
                         >
                           {project.name}
                         </Link>
@@ -241,15 +241,15 @@ export default function QueuePage() {
                   <Td className="max-w-xs">
                     <Link
                       href={`/admin/businesses/${b.id}`}
-                      className="font-medium text-zinc-900 hover:text-green-700 dark:text-zinc-100 dark:hover:text-green-400"
+                      className="font-medium text-ink hover:text-forest"
                     >
                       {b.name || "(isimsiz)"}
                     </Link>
-                    <p className="truncate font-mono text-xs text-zinc-500">
+                    <p className="truncate font-mono text-xs text-muted">
                       {b.place_id}
                     </p>
                     {b.detail_last_error ? (
-                      <p className="break-words text-xs text-red-600 dark:text-red-400">
+                      <p className="break-words text-xs text-red-600">
                         {b.detail_last_error}
                       </p>
                     ) : null}

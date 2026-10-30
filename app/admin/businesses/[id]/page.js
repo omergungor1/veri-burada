@@ -27,7 +27,7 @@ function ExternalLink({ href, children }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 break-all text-green-700 hover:underline dark:text-green-400"
+      className="inline-flex items-center gap-1 break-all text-forest hover:underline"
     >
       {children || href}
       <Icon name="external" className="h-3.5 w-3.5 shrink-0" />
@@ -50,7 +50,7 @@ export default function BusinessDetailPage({ params }) {
     <>
       <Link
         href="/admin/businesses"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
       >
         <Icon name="chevronLeft" className="h-4 w-4" />
         İşletmeler
@@ -95,7 +95,7 @@ export default function BusinessDetailPage({ params }) {
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader title="Bilgiler" />
-              <dl className="divide-y divide-zinc-100 px-4 dark:divide-zinc-800">
+              <dl className="divide-y divide-border px-4">
                 <DetailRow label="Place ID">
                   <span className="font-mono text-xs">{b.place_id}</span>
                 </DetailRow>
@@ -131,7 +131,7 @@ export default function BusinessDetailPage({ params }) {
             <div className="space-y-4">
               <Card>
                 <CardHeader title="Detay tarama" />
-                <dl className="divide-y divide-zinc-100 px-4 dark:divide-zinc-800">
+                <dl className="divide-y divide-border px-4">
                   <DetailRow label="Durum">
                     <StatusBadge status={b.detail_status} />
                   </DetailRow>
@@ -142,7 +142,7 @@ export default function BusinessDetailPage({ params }) {
                   </DetailRow>
                   <DetailRow label="Son hata">
                     {b.detail_last_error ? (
-                      <span className="text-red-600 dark:text-red-400">
+                      <span className="text-red-600">
                         {b.detail_last_error}
                       </span>
                     ) : null}
@@ -160,19 +160,19 @@ export default function BusinessDetailPage({ params }) {
                 {data.results.length === 0 ? (
                   <EmptyState title="Kayıt yok" />
                 ) : (
-                  <ul className="thin-scroll max-h-80 divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-800">
+                  <ul className="thin-scroll max-h-80 divide-y divide-border overflow-y-auto">
                     {data.results.map((r) => {
                       const project = r.scan_jobs?.projects;
                       return (
                         <li key={r.id} className="px-4 py-2 text-sm">
-                          <p className="break-words text-zinc-800 dark:text-zinc-200">
+                          <p className="break-words text-ink">
                             {r.search_term || "-"}
                           </p>
-                          <p className="text-xs text-zinc-500">
+                          <p className="text-xs text-muted">
                             {project ? (
                               <Link
                                 href={`/admin/projects/${project.id}`}
-                                className="text-green-700 hover:underline dark:text-green-400"
+                                className="text-forest hover:underline"
                               >
                                 {project.name}
                               </Link>
@@ -192,16 +192,16 @@ export default function BusinessDetailPage({ params }) {
           {data.errors.length > 0 ? (
             <Card className="mt-4">
               <CardHeader title="Hatalar" />
-              <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <ul className="divide-y divide-border">
                 {data.errors.map((e) => (
                   <li key={e.id} className="px-4 py-2.5 text-sm">
                     <div className="flex items-center gap-2">
                       <Badge tone="red">{e.error_type || "hata"}</Badge>
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-muted">
                         {formatDate(e.created_at)}
                       </span>
                     </div>
-                    <p className="mt-1 break-words text-zinc-800 dark:text-zinc-200">
+                    <p className="mt-1 break-words text-ink">
                       {e.message}
                     </p>
                   </li>

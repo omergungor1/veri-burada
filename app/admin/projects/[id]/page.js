@@ -110,7 +110,7 @@ export default function ProjectDetailPage({ params }) {
           action={
             <Link
               href="/admin/projects"
-              className="text-sm font-medium text-green-700 hover:underline dark:text-green-400"
+              className="text-sm font-medium text-forest hover:underline"
             >
               Projelere dön
             </Link>
@@ -145,7 +145,7 @@ export default function ProjectDetailPage({ params }) {
     <>
       <Link
         href="/admin/projects"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
       >
         <Icon name="chevronLeft" className="h-4 w-4" />
         Projeler
@@ -200,7 +200,7 @@ export default function ProjectDetailPage({ params }) {
           />
 
           {project.status === "paused" ? (
-            <Card className="mb-4 border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+            <Card className="mb-4 border-mint/40 bg-pale p-3 text-sm text-forest">
               Proje duraklatıldı. Bu projeye ait liste/detay işleri worker’lara verilmez;
               worker’lar varsa diğer aktif projelerden iş almaya devam eder.
             </Card>
@@ -280,7 +280,7 @@ function TasksTab({ jobIds }) {
 
   return (
     <Card>
-      <div className="flex flex-col gap-3 border-b border-zinc-200 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+      <div className="flex flex-col gap-3 border-b border-border p-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
           tabs={TASK_FILTERS}
           active={status}
@@ -322,7 +322,7 @@ function TasksTab({ jobIds }) {
                   <Td className="max-w-xs">
                     <span className="break-words">{t.search_term || "-"}</span>
                     {t.last_error ? (
-                      <p className="break-words text-xs text-red-600 dark:text-red-400">
+                      <p className="break-words text-xs text-red-600">
                         {t.last_error}
                       </p>
                     ) : null}
@@ -372,7 +372,7 @@ function BusinessesTab({ jobIds }) {
 
   return (
     <Card>
-      <div className="border-b border-zinc-200 p-3 dark:border-zinc-800">
+      <div className="border-b border-border p-3">
         <SearchInput
           value={search}
           onChange={(v) => {
@@ -405,15 +405,15 @@ function BusinessesTab({ jobIds }) {
           </thead>
           <tbody>
             {data.rows.map((b) => (
-              <tr key={b.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+              <tr key={b.id} className="hover:bg-pale">
                 <Td>
                   <Link
                     href={`/admin/businesses/${b.id}`}
-                    className="font-medium text-zinc-900 hover:text-green-700 dark:text-zinc-100 dark:hover:text-green-400"
+                    className="font-medium text-ink hover:text-forest"
                   >
                     {b.name || "(isimsiz)"}
                   </Link>
-                  <p className="max-w-xs truncate font-mono text-xs text-zinc-500">
+                  <p className="max-w-xs truncate font-mono text-xs text-muted">
                     {b.place_id}
                   </p>
                 </Td>
@@ -422,7 +422,7 @@ function BusinessesTab({ jobIds }) {
                 <Td className="whitespace-nowrap tabular-nums">
                   {b.rating ?? "-"}
                   {b.review_count ? (
-                    <span className="text-xs text-zinc-500"> ({b.review_count})</span>
+                    <span className="text-xs text-muted"> ({b.review_count})</span>
                   ) : null}
                 </Td>
                 <Td>

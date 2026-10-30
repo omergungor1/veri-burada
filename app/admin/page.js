@@ -90,7 +90,7 @@ export default function DashboardPage() {
               action={
                 <Link
                   href="/admin/projects"
-                  className="text-xs font-medium text-green-700 hover:underline dark:text-green-400"
+                  className="text-xs font-medium text-forest hover:underline"
                 >
                   Tümü
                 </Link>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
                 }
               />
             ) : (
-              <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <ul className="divide-y divide-border">
                 {data.projects.map((p) => {
                   const list = p.progress?.list || {
                     total: 0,
@@ -123,10 +123,10 @@ export default function DashboardPage() {
                     <li key={p.id}>
                       <Link
                         href={`/admin/projects/${p.id}`}
-                        className="block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                        className="block px-4 py-3 hover:bg-pale"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                          <span className="truncate text-sm font-medium text-ink">
                             {p.name}
                           </span>
                           <StatusBadge status={p.status} />
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                             emptyLabel="Liste sonrası"
                           />
                         </div>
-                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        <p className="mt-1 text-xs text-muted">
                           {list.found || 0} işletme · {formatDate(p.created_at)}
                         </p>
                       </Link>
@@ -162,21 +162,21 @@ export default function DashboardPage() {
             {data.errors.length === 0 ? (
               <EmptyState title="Hata kaydı yok" />
             ) : (
-              <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <ul className="divide-y divide-border">
                 {data.errors.map((e) => (
                   <li key={e.id} className="px-4 py-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium text-red-700 dark:text-red-400">
+                      <span className="text-xs font-medium text-red-700">
                         {e.error_type || "hata"}
                       </span>
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-muted">
                         {timeAgo(e.created_at)}
                       </span>
                     </div>
-                    <p className="mt-0.5 break-words text-sm text-zinc-800 dark:text-zinc-200">
+                    <p className="mt-0.5 break-words text-sm text-ink">
                       {e.message || "-"}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="mt-0.5 truncate text-xs text-muted">
                       {e.workers?.name ? `İşçi: ${e.workers.name}` : null}
                       {e.scan_tasks?.search_term
                         ? ` · ${e.scan_tasks.search_term}`

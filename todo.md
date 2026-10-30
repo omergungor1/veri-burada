@@ -1,1820 +1,1521 @@
-# PROJE: GOOGLE MAPS SCRAPER YÖNETİM SİSTEMİ
+# VERİ BURADA – MÜŞTERİ PANELİ VE ONBOARDING GELİŞTİRME PROMPTU
 
-Mevcut bir Next.js projesi ve aynı proje dizini içerisinde çalışan bir browser extension bulunuyor.
+Sen deneyimli bir Senior Full-Stack Developer, SaaS Product Designer ve Next.js mimarısın.
 
-Bu projeyi baştan yazma. Öncelikle mevcut kod tabanını detaylı şekilde incele. Özellikle browser extension içerisindeki mevcut Google Maps scraping mekanizmasını, `Keyword_planner` componentini, mevcut list/detail scraping akışlarını ve kullanılan veri yapılarını tespit et.
+Supabase mcp bağlı. Bağlı Organizasyon içinde Veri-Burada projesini kullanacaksın bu proje için. Tablo ekleyip güncelleyebilirsin vs. Var olan admin  ve eklenti akışını bozmamaya çalış. Müşteri panelini yapıyoruz. Modern bir admin panel tasarlayalım müşteri için. Tam responsive ve telden kullanılabilen bir panel yapacaksın. 
 
-Mevcut çalışan scraper mantığını mümkün olduğunca koru. Gereksiz refactor yapma. Bunun üzerine aşağıda tarif edilen Supabase tabanlı merkezi kuyruk, worker yönetimi ve admin panel sistemini kur.
+Mevcut **Veri Burada** projesine eksiksiz, modern, kullanıcı dostu ve production-ready bir müşteri paneli geliştireceksin.
 
-Supabase MCP bağlıdır. Gerekli SQL migrationlarını / tabloları oluştur, indexleri ekle, gerekli RPC fonksiyonlarını oluştur ve RLS politikalarını yapılandır.
+## 1. PROJE HAKKINDA
 
-Teknolojiler:
+Marka: Veri Burada
 
-* Next.js
-* JavaScript
-* TailwindCSS
-* Supabase PostgreSQL
-* Supabase Auth
-* Browser Extension
-* TypeScript KULLANMA.
-* Tam responsive tasarım yap.
-* Özellikle admin panel mobil kullanımını çok iyi optimize et.
+Ürün tipi: DaaS (Data as a Service)
 
----
+Veri Burada, internetten işletme bilgileri toplayan ve müşterilerine toplu işletme listeleri sunan bir SaaS/DaaS platformudur.
 
-# 1. TEMEL MİMARİ
+Örnek kullanım:
 
-Sistem iki ana parçadan oluşacak:
+Bir müşteri Antalya'daki kuaförlerin listesini almak istiyor.
 
-## A. Admin Panel
+1. Veri Burada'ya kayıt olur.
+2. Antalya ilini seçer.
+3. Arama terimi olarak "Kuaför" yazar.
+4. Liste talebi oluşturur.
+5. Sistem arka planda işletmeleri toplar.
+6. Liste yaklaşık 1 iş günü içerisinde hazırlanır.
+7. Kullanıcı e-posta ile bilgilendirilir.
+8. Müşteri paneline giriş yapar.
+9. Liste istatistiklerini ve 10 örnek işletmeyi ücretsiz görür.
+10. Tam listeyi açmak istediğinde kredi satın alır.
+11. Kredisi yeterliyse listeyi açar ve indirir.
 
-Next.js uygulaması.
+İş modelimiz kredi bazlıdır.
 
-Buradan:
+**1 işletme = 1 kredi.**
 
-* login
-* scraping project oluşturma
-* project görüntüleme
-* queue görüntüleme
-* worker görüntüleme/yönetme
-* scraping ilerlemesini takip etme
-* business kayıtlarını görüntüleme
-* CSV export
+### Önemli teknik talimatlar
 
-yapılacak.
+- Proje halihazırda Next.js ile geliştirilmiştir.
+- Supabase kullanılmaktadır.
+- Supabase Auth ile giriş sistemi bulunmaktadır.
+- Şu anda kayıt/onboarding ekranı bulunmamaktadır.
+- Giriş yapan kullanıcı boş müşteri paneline yönlendirilmektedir.
+- Mevcut admin paneli ve arka plan liste toplama altyapısı olabilir.
 
-## B. Browser Extension / Scraper Worker
+İLK ÖNCE MEVCUT PROJEYİ ANALİZ ET.
 
-Extension tamamen otonom bir worker olarak çalışacak.
+Mevcut mimariyi, route yapısını, authentication sistemini, veritabanını, tasarım bileşenlerini ve admin altyapısını incele.
 
-Extension kullanıcıdan:
+Mevcut çalışan sistemleri bozma. Gereksiz yere yeni mimari oluşturma.
 
-* keyword
-* şehir
-* place_id
-* scraping türü
+Mevcut tablo veya fonksiyonlar kullanılabiliyorsa onları genişlet.
 
-gibi herhangi bir input ALMAYACAK.
+Veritabanı değişikliklerini migration olarak hazırla. Gerekli SQL migration'larını oluştur.
 
-Bunların tamamını merkezi Supabase queue sisteminden alacak.
+Placeholder, sahte API veya kalıcı mock veri kullanma.
 
-Extension'ın temel arayüzü yalnızca:
-
-* START AUTO MODE
-* STOP AUTO MODE
-* worker durumu
-* çok kısa mevcut işlem bilgisi
-
-gibi bilgiler içersin.
-
-Mevcut karmaşık manuel scraper arayüzünü sadeleştir.
-
-Auto Mode açıldığında worker kendi kendine sürekli iş alıp çalışabilmeli.
+Gerçek Supabase entegrasyonları yap.
 
 ---
 
-# 2. SCRAPING MODLARI
+# 2. TASARIM FELSEFESİ
 
-Sistemin gelecekte 3 modu olacak:
+Modern, premium ve sade bir B2B SaaS dashboard tasarla.
 
-1. LIST
-2. DETAIL
-3. MAX_DETAIL
+Hedef tasarım özellikleri:
 
-Ancak ŞİMDİ sadece:
+- Minimalist
+- Profesyonel
+- Güven veren
+- Kolay anlaşılır
+- Modern
+- Responsive
+- Ferah ve temiz
+- Kullanıcıyı satın almaya yönlendiren
+- Gereksiz karmaşıklıktan uzak
 
-* LIST
-* DETAIL
+Tasarım dili olarak Linear, Stripe Dashboard, Vercel ve modern SaaS yönetim panellerinden ilham alabilirsin.
 
-modlarını implemente et.
+Renk yaklaşımı:
 
-Database tasarımını gelecekte MAX_DETAIL eklenebilecek şekilde oluştur.
+- Koyu lacivert
+- Beyaz
+- Açık gri
+- Turkuaz veya mavi vurgu renkleri
+
+Mevcut projede bir tasarım sistemi bulunuyorsa onu koru.
+
+Mümkünse mevcut UI bileşenlerini kullan.
+
+Yeni bileşen gerektiğinde mevcut teknolojiye uygun bileşenler oluştur.
+
+Tüm arayüz Türkçe olacak.
+
+Mobil ve masaüstünde sorunsuz çalışacak.
+
+Loading, empty state, error state, success state ve skeleton ekranlarını unutma.
 
 ---
 
-# 3. LIST SCRAPING
+# 3. KAYIT VE ONBOARDING
 
-Örnek kullanıcı admin panelden:
+Yeni kullanıcıların kayıt olabilmesi için çok adımlı, modern bir onboarding geliştir.
 
-Keyword:
+Amaç yalnızca kayıt almak değil, müşteriyi tanımak ve hedef müşteri kitlemizi analiz edebilmektir.
 
-`oto tamir`
+Onboarding kısa, akıcı ve kolay tamamlanabilir olmalı.
 
-Location:
-
-`Bursa`
-
-seçti.
-
-Mevcut extension içerisindeki `Keyword_planner` componentinde bulunan mantığı admin paneldeki New Project ekranına taşı.
-
-Örneğin sistem şunları oluşturabilir:
-
-* oto tamir Bursa Osmangazi
-* oto tamir Bursa Nilüfer
-* oto tamir Bursa Yıldırım
-* oto tamir Bursa Gemlik
-* ...
-
-Her üretilen search term bir `scan_task` olmalıdır.
-
-LIST scraping:
-
-Google Maps üzerinde search term araması yapar.
+Üstte adım göstergesi bulunmalı.
 
 Örneğin:
 
-`oto tamir Bursa Gemlik`
+Adım 1/4
 
-Sonuçlardan mümkün olduğunca sadece:
+## ADIM 1 – HESAP OLUŞTUR
 
-* place_id
-* cid
+Başlık:
 
-toplanır.
+"İhtiyacınız olan işletme verilerine ulaşın."
 
-Bu aşamada business detayları toplanmayacaktır.
+Alt açıklama:
 
-LIST taraması her yeni project/job oluşturulduğunda yeniden yapılmalıdır.
+"Binlerce işletmeye ulaşmak artık çok daha kolay. Hemen ücretsiz hesabınızı oluşturun."
 
-Daha önce aynı keyword/location taranmış olsa bile yeni project için LIST scan tekrar yapılır.
+Alanlar:
 
----
+- Ad Soyad (zorunlu)
+- E-posta (zorunlu)
+- Telefon (opsiyonel)
+- Şifre (zorunlu)
 
-# 4. BUSINESS UNIQUE MANTIĞI
+Telefon için Türkiye ülke kodu +90 varsayılan olabilir, ancak uluslararası telefon numaraları da desteklenmeli.
 
-Bir işletmenin temel external identifier'ı:
+Telefon boş bırakılırsa kayıt işlemini engellemeyen küçük bir uyarı göster:
 
-`place_id`
+"Listeniz hazır olduğunda bunu kaçırmayın! Telefon numaranızı eklerseniz size SMS veya WhatsApp üzerinden de haber verebiliriz."
 
-olacaktır.
+Telefon opsiyonel kalmalı.
 
-CID de saklanmalıdır.
+SMS ve WhatsApp gönderim altyapısı şu anda yoksa gönderim yapılmış gibi gösterme.
 
-Bir business farklı:
+Ayrıca bildirim izinlerini ayrı şekilde al ve sakla. Telefon verilmesi otomatik pazarlama izni anlamına gelmez.
 
-* project
-* scan job
-* keyword
-* search term
+Şifre Supabase Auth üzerinden yönetilmeli.
 
-içerisinde bulunabilir.
+Şifreyi kendi veritabanımızda düz metin olarak saklama.
 
-Ancak `businesses` tablosunda aynı `place_id` yalnızca BİR DEFA bulunmalıdır.
+E-posta doğrulaması şu aşamada zorunlu olmayacak.
 
-Örneğin aynı işletme:
+Supabase Auth ayarları bu akışa uygun yapılandırılmalı. Dashboard üzerinde manuel yapılması gereken ayar varsa açıkça belirt.
 
-`oto tamir Bursa`
+Kullanıcı kayıt olduğunda auth.users kaydı oluşmalı.
 
-ve
+Kayıt işlemi başarısız olursa onboarding ilerlememeli.
 
-`oto servis Bursa Osmangazi`
+## ADIM 2 – SİZİ TANIYALIM
 
-aramalarında çıkabilir.
+Başlık:
 
-Business tekrar oluşturulmayacaktır.
+"Veri Burada'yı nasıl kullanacaksınız?"
 
-Bunun yerine business ile scan/project arasındaki ilişki ayrı bir junction/result tablosunda tutulmalıdır.
+Alt açıklama:
 
-Database seviyesinde UNIQUE constraint kullan.
+"İhtiyaçlarınızı anlayarak size daha iyi bir deneyim sunmak istiyoruz."
 
-Duplicate kontrolünü sadece frontend/extension koduna bırakma.
+Soru 1:
 
-Extension LIST sonuçlarını gönderirken aynı batch içerisinde duplicate place_id kayıtlarını client tarafında da temizlesin.
+"Veri Burada'yı hangi amaçla kullanacaksınız?"
 
-Örneğin:
+Seçenekler:
 
-```js
-Map(place_id => result)
-```
+- Potansiyel müşteri bulmak
+- Satış ve pazarlama
+- Soğuk arama / müşteri kazanımı
+- E-posta pazarlaması
+- Pazar araştırması
+- Rakip analizi
+- Yazılım veya otomasyon projeleri
+- Diğer
 
-mantığı kullanılabilir.
+Birden fazla seçim yapılabilsin.
 
-Böylece gereksiz network trafiği azaltılsın.
+Soru 2:
 
-Ancak nihai duplicate güvenliği database constraint ile sağlanmalıdır.
+"Hangisi sizi daha iyi tanımlıyor?"
 
----
+Seçenekler:
 
-# 5. BUSINESS TABLOSU
+- Freelancer
+- Ajans
+- Yazılım şirketi
+- Satış ekibi
+- Pazarlama ekibi
+- İşletme sahibi
+- Kurumsal şirket çalışanı
+- Diğer
 
-`businesses` tablosu oluştur.
+Soru 3:
 
-Önerilen alanlar:
+"Aylık yaklaşık kaç işletme verisine ihtiyacınız oluyor?"
 
-```text
-id
-place_id
-cid
+Seçenekler:
 
-name
-city
-district
-full_address
-plus_code
+- 100'den az
+- 100–1.000
+- 1.000–5.000
+- 5.000–10.000
+- 10.000+
 
-phone
-website
+Soru 4:
 
-lat
-lng
+"En çok hangi işletmelere ulaşmak istiyorsunuz?"
 
-rating
-review_count
-
-business_type
-
-image_url
-working_hours
-
-google_maps_url
-
-created_at
-detailed_at
-max_detailed_at
-
-detail_status
-next_detail_scan_at
-updated_at
-```
-
-Alan isimleri tamamen İngilizce olsun.
-
-`place_id` UNIQUE ve NOT NULL.
-
-`cid` nullable olabilir fakat index ekle.
-
-`created_at` business'ın bizim sistemimize ilk giriş tarihidir.
-
-`detailed_at` en son başarılı DETAIL scraping tarihidir.
-
-`max_detailed_at` gelecekte MAX_DETAIL scraping yapıldığı tarihi tutacaktır.
-
-UI'da sadece tarih gösterilebilir.
-
-Database tarafında gerekiyorsa timestamp kullanabilirsin.
-
----
-
-# 6. SEARCH TERM BUSINESS İLİŞKİSİ
-
-Business tablosunun içine `search_term` koyma.
-
-Çünkü aynı business birden fazla search term ile bulunabilir.
-
-Bunun için ayrı ilişki tablosu oluştur.
-
-Örneğin:
-
-```text
-scan_results
-
-id
-scan_job_id
-scan_task_id
-business_id
-place_id
-search_term
-discovered_at
-```
-
-Uygun UNIQUE constraint oluştur.
-
-Aynı business'ın aynı task altında tekrar eklenmesini engelle.
-
-Örneğin:
-
-```text
-UNIQUE(scan_task_id, business_id)
-```
-
-veya mimari açısından daha uygun görüyorsan eşdeğer güvenli constraint kullan.
-
----
-
-# 7. PROJECT / JOB / TASK YAPISI
-
-Temel yapı:
-
-```text
-projects
-   ↓
-scan_jobs
-   ↓
-scan_tasks
-   ↓
-scan_results
-   ↓
-businesses
-```
-
-Worker yönetimi ayrıca:
-
-```text
-workers
-```
-
-üzerinden yapılacaktır.
-
-Gerekirse ayrı bir queue/lease tablosu ekleyebilirsin.
-
-Ancak gereksiz tablo üretme.
-
----
-
-# 8. PROJECTS
-
-`projects`
-
-alanları yaklaşık:
-
-```text
-id
-name
-keyword
-location
-status
-created_at
-updated_at
-```
-
-Bir project oluşturulduğunda LIST scan job oluştur.
-
-Project içerisinde oluşturulan tüm search termleri `scan_tasks` tablosuna ekle.
-
----
-
-# 9. SCAN_JOBS
-
-Bir project altında farklı scan operasyonlarını temsil etsin.
-
-Örneğin:
-
-```text
-id
-project_id
-scan_type
-
-status
-
-total_tasks
-completed_tasks
-failed_tasks
-
-started_at
-completed_at
-created_at
-```
-
-`scan_type` geleceğe uyumlu olarak:
-
-```text
-list
-detail
-max_detail
-```
-
-değerlerini destekleyebilecek şekilde tasarlanabilir.
-
-Şimdilik LIST ve DETAIL kullanılacak.
-
----
-
-# 10. SCAN_TASKS
-
-LIST scraping için her search term ayrı task olmalıdır.
+Opsiyonel serbest metin.
 
 Örnek:
 
-```text
-id
-scan_job_id
+"Türkiye genelindeki kuaförler ve güzellik salonları."
 
-task_type
-search_term
+Bu cevapları veritabanında yapılandırılmış biçimde sakla.
 
-status
+Admin paneli tarafından sonradan analiz edilebilir olmalı.
 
-worker_id
+## ADIM 3 – İLK LİSTENİ OLUŞTUR
 
-claimed_at
-started_at
-completed_at
+Başlık:
 
-attempt_count
-last_error
+"İlk işletme listeni oluşturalım!"
 
-lease_expires_at
+Alt açıklama:
 
-created_at
-updated_at
-```
+"Hangi işletmeleri aradığını söyle, gerisini bize bırak."
 
-Status örnekleri:
+Bu adımda liste talep formunun basitleştirilmiş versiyonu gösterilsin.
 
-```text
-pending
-claimed
-running
-completed
-failed
-cancelled
-```
+Alanlar:
 
-Gerekirse `retry` durumunu ayrıca ekleyebilirsin veya pending'e geri döndür.
+- Arama terimleri
+- İl seçimi
 
----
+Butonlar:
 
-# 11. ATOMIC TASK CLAIM
+"İlk Listemi Oluştur"
 
-BU PROJENİN EN ÖNEMLİ KISIMLARINDAN BİRİDİR.
+"Şimdilik Atla"
 
-Aynı task'ı iki worker kesinlikle alamamalıdır.
+Liste oluşturmak zorunlu değil.
 
-Şöyle bir yöntem KULLANMA:
+Kullanıcı oluşturursa gerçek liste talebi kaydedilecek.
 
-1. SELECT pending task
-2. client task gördü
-3. UPDATE task worker_id
+Atla seçerse normal şekilde devam edecek.
 
-Çünkü iki worker aynı anda aynı kaydı görebilir.
+## ADIM 4 – HOŞ GELDİN
 
-Task sahiplenme işlemini PostgreSQL tarafında ATOMIC yap.
+Başlık:
 
-Supabase RPC/PostgreSQL function oluştur.
+"Veri Burada'ya hoş geldin, [Ad]!"
 
-Örneğin mantıksal olarak:
+Açıklama:
 
-```text
-claim_next_list_task(worker_id)
-```
+"İşletme verilerine ulaşmak için her şey hazır."
 
-Tek transaction içerisinde:
+Eğer liste talebi oluşturduysa:
 
-* uygun pending task bul
-* row lock uygula
-* mümkünse `FOR UPDATE SKIP LOCKED`
-* worker_id ata
-* claimed_at yaz
-* lease_expires_at yaz
-* status = claimed/running yap
-* sadece sahiplenilen task'ı döndür
+"İlk liste talebini aldık! Listen hazır olduğunda sana haber vereceğiz."
 
-Aynı task başka worker'a verilmemelidir.
+Eğer oluşturmadıysa:
+
+"İlk işletme listeni oluşturarak hemen başlayabilirsin."
+
+Buton:
+
+"Panele Git"
+
+Onboarding tamamlandı bilgisi kaydedilmeli.
+
+Kullanıcı tekrar giriş yaptığında onboarding tamamlanmışsa doğrudan dashboard açılmalı.
+
+Onboarding yarım kaldıysa kaldığı adımdan devam edebilmeli.
+
+Gerekli durumlarda onboarding soruları daha sonra hesap ayarlarından güncellenebilmeli.
 
 ---
 
-# 12. LEASE / WORKER CRASH MEKANİZMASI
+# 4. MÜŞTERİ PANELİ GENEL YAPISI
 
-Browser extension kapanabilir.
+Müşteri paneli sade bir sidebar içermeli.
 
-Chrome crash olabilir.
+Menüler:
 
-İnternet gidebilir.
+1. Genel Bakış
+2. Listelerim
+3. Yeni Liste Talebi
+4. Kredilerim
+5. Hesabım
 
-Bilgisayar kapanabilir.
+Sidebar alt bölümünde:
 
-Bu nedenle yalnızca:
+- Kullanıcı adı
+- E-posta
+- Mevcut kredi
+- Çıkış yap
 
-`worker_id`
-
-atamak yeterli değildir.
-
-Task claim edildiğinde:
-
-```text
-lease_expires_at
-```
-
-oluştur.
-
-Worker düzenli heartbeat göndermelidir.
-
-Worker veya task uzun süre heartbeat göndermezse task sonsuza kadar running kalmamalıdır.
-
-Expired task tekrar `pending` yapılabilmelidir.
-
-Örneğin admin veya RPC mekanizması:
-
-```text
-requeue_expired_tasks()
-```
-
-oluşturabilir.
-
-Aynı zamanda `attempt_count` artır.
-
-Belirli sayıda başarısız denemeden sonra task:
-
-```text
-failed
-```
-
-olabilir.
-
-Retry limitini merkezi config/constant olarak tanımla.
-
----
-
-# 13. LIST WORKER AKIŞI
-
-Extension Auto Mode çalıştığında:
-
-1. Worker kendisini register eder.
-2. Heartbeat gönderir.
-3. Merkezi sistemden iş ister.
-4. LIST task aldıysa Google Maps search açar.
-5. Search term'i arar.
-6. Sonuçları toplar.
-7. Aynı batch içindeki duplicate `place_id` kayıtlarını temizler.
-8. Sonuçları mümkün olduğunca batch halinde backend/Supabase'e gönderir.
-9. Businesses UPSERT edilir.
-10. Scan_results ilişkileri oluşturulur.
-11. Task completed yapılır.
-12. Worker yeni task ister.
-
-Her business için ayrı ayrı network request yapma.
-
-Batch gönderim kullan.
-
----
-
-# 14. DETAIL SCRAPING QUEUE
-
-LIST ile DETAIL birbirinden farklıdır.
-
-DETAIL scraping search term bazlı değil, business/place_id bazlı çalışacaktır.
-
-Yeni bulunan bir business:
-
-```text
-detailed_at IS NULL
-```
-
-ise DETAIL scraping için adaydır.
-
-Aynı business 5 farklı search term içerisinde bulunmuş olsa bile sadece BİR KEZ detail scraping yapılmalıdır.
-
-DETAIL worker bir defada:
-
-**maksimum 100 business**
-
-alabilmelidir.
-
-Örneğin PostgreSQL RPC:
-
-```text
-claim_detail_batch(worker_id, batch_size)
-```
-
-Batch size maksimum 100 olsun.
-
-Yine atomic claim/locking kullanılmalıdır.
-
-İki worker aynı business'ı DETAIL için sahiplenmemelidir.
-
-Gerekirse business üzerinde:
-
-```text
-detail_status
-detail_worker_id
-detail_claimed_at
-detail_lease_expires_at
-```
-
-alanları oluştur.
-
-Alternatif olarak ayrı `detail_tasks` tablosu mimari olarak daha temiz olacaksa kullanabilirsin.
-
-Kararı mevcut kodu inceleyerek ver.
-
-Öncelik:
-
-* basitlik
-* veri bütünlüğü
-* düşük Supabase yükü
-* worker concurrency güvenliği
-
-olsun.
-
----
-
-# 15. DETAIL BATCH
-
-Worker DETAIL moduna geçtiğinde:
-
-```text
-100 place_id
-```
-
-alır.
-
-Her business için Google Maps detail scraping çalıştırılır.
-
-Toplanan bilgiler:
-
-```text
-Business Name
-City
-District
-Full Address
-Plus Code
-Phone
-Website
-Latitude
-Longitude
-Rating
-Review Count
-Business Type
-Image URL
-Working Hours
-Google Maps URL
-Place ID
-CID
-```
-
-Database alanları İngilizce olacaktır.
-
-İşlem sonunda sonuçları mümkün olduğunca tek batch request ile server'a gönder.
-
-Businesses tablosunu UPSERT et.
-
-Başarılı business için:
-
-```text
-detailed_at = now()
-detail_status = completed
-```
-
-yap.
-
-Başarısız business'ları tüm batch yüzünden kaybetme.
-
-Partial success destekle.
-
-Örneğin 100 işletmeden:
-
-```text
-96 success
-4 failed
-```
-
-olabilir.
-
-96 başarılı kayıt kaydedilmeli.
-
-4 başarısız kayıt retry için uygun durumda bırakılmalı.
-
----
-
-# 16. LIST VE DETAIL ÖNCELİK MEKANİZMASI
-
-Auto worker'ın iş seçim algoritması şu mantıkta olsun:
-
-Normalde LIST task çalıştır.
-
-Ancak bekleyen DETAIL business sayısı belirli eşiğe ulaştığında DETAIL batch çalıştır.
-
-Başlangıç için threshold:
-
-```text
-100
-```
-
-olsun.
+Kredi bakiyesi sidebar veya üst navbar içerisinde kolayca görülebilmeli.
 
 Örneğin:
 
-```text
-if pending_detail_count >= 100:
-    claim up to 100 detail businesses
-    run DETAIL
-else:
-    claim one LIST task
-```
+"2.450 Kredi"
 
-Ancak önemli bir edge case var:
+Yanında küçük bir "+" butonu bulunabilir.
 
-LIST queue bittiyse ve DETAIL queue içerisinde 100'den az kayıt kaldıysa bunları bekletme.
-
-Mantık:
-
-```text
-if pending_detail >= 100:
-    DETAIL
-
-else if pending_list > 0:
-    LIST
-
-else if pending_detail > 0:
-    DETAIL remaining batch
-
-else:
-    IDLE
-```
-
-Bu mantığı mümkün olduğunca tek merkezi `claim_next_work` RPC üzerinden çözmeyi değerlendir.
-
-Ama implementasyon gereksiz karmaşıklaşacaksa LIST ve DETAIL claim RPC'lerini ayrı tut.
+Bu buton kredi satın alma sayfasını açmalı.
 
 ---
 
-# 17. DETAY TARAMAYI GELECEKTE TEKRARLAMA
+# 5. GENEL BAKIŞ (DASHBOARD)
 
-İlk bulunan business bir kere DETAIL scraping yapılmalıdır.
+Dashboard kullanıcının en önemli bilgileri tek ekranda görmesini sağlamalı.
 
-Daha sonra gelecekte belirli periyotlarda yeniden taranabilecek.
+Üst kısım:
 
-Bunun için şimdiden:
+"Hoş geldin, Ahmet 👋"
 
-```text
-detailed_at
-next_detail_scan_at
-```
+Alt metin:
 
-alanlarını destekle.
+"İşletme verilerine ulaşmak için yeni bir liste oluşturabilirsin."
 
-Şimdilik periyodik scheduler yapmak zorunda değilsin.
+Ana CTA:
 
-Ancak mimari daha sonra:
+"Yeni Liste Oluştur"
 
-```text
-detailed_at < X days ago
-```
+Özet kartları:
 
-veya:
+1. Toplam Liste Talebim
+2. Hazır Listelerim
+3. Hazırlanan Listeler
+4. Mevcut Kredim
 
-```text
-next_detail_scan_at <= now()
-```
+Alt bölüm:
 
-ile tekrar DETAIL queue oluşturabilecek şekilde tasarlansın.
+"Son Listelerim"
 
-Ara DETAIL taramalarda geçmiş snapshotları saklamak zorunda değiliz.
+Son 5 liste talebi gösterilsin.
 
-Business'ın son güncel bilgisi yeterlidir.
+Kolonlar:
 
----
+- Liste adı
+- Oluşturulma tarihi
+- Durum
+- İşletme sayısı
+- İşlem
 
-# 18. WORKERS TABLOSU
+Durumlar:
 
-Worker extension instance'larını takip etmek için `workers` tablosu oluştur.
+- Sırada
+- Hazırlanıyor
+- Hazır
+- Başarısız
 
-Önerilen alanlar:
+Hazır listelerde:
 
-```text
-id
-worker_key
-name
+"Listeyi Görüntüle"
 
-status
-auto_mode
+Hazırlanan listelerde:
 
-current_task_type
-current_task_id
-current_job_id
+"Hazırlanıyor"
 
-last_heartbeat_at
-started_at
+Hiç liste oluşturulmadıysa güzel bir empty state göster:
 
-extension_version
+"Henüz bir işletme listen yok."
 
-processed_list_tasks
-processed_detail_businesses
-failed_tasks
+"İlk listeni oluşturarak binlerce potansiyel işletmeye ulaşabilirsin."
 
-created_at
-updated_at
-```
+Buton:
 
-Status örnekleri:
+"İlk Listemi Oluştur"
 
-```text
-offline
-idle
-working
-paused
-stopping
-error
-```
+Ek olarak hazır ancak henüz satın alınmamış listeler varsa dashboard üzerinde dikkat çekici bir bölüm gösterilebilir:
 
-Worker'ın ONLINE/OFFLINE durumunu her saniye database'e yazma.
+"2 listen hazır! İşletme verilerini keşfetmeye başlayabilirsin."
 
-Örneğin heartbeat yaklaşık 20-30 saniyede bir gönderilebilir.
-
-Admin panelde:
-
-```text
-last_heartbeat_at
-```
-
-değerine göre online/offline hesaplanabilir.
-
-Supabase Free Plan nedeniyle gereksiz write yapma.
+Bu bölüm kullanıcıyı liste detay sayfasına yönlendirmeli.
 
 ---
 
-# 19. WORKER IDENTITY
+# 6. YENİ LİSTE TALEBİ
 
-Her extension kurulumu ilk çalışmada unique bir:
+Bu ekran ürünün en önemli ekranlarından biridir.
 
-```text
-worker_key
-```
+Mümkün olduğunca anlaşılır ve hızlı kullanılabilir olmalı.
 
-oluştursun.
+Başlık:
 
-Bunu extension local storage'da sakla.
+"Yeni İşletme Listesi Oluştur"
 
-Örneğin UUID kullanılabilir.
+Açıklama:
 
-Extension tekrar açıldığında aynı worker identity ile devam etsin.
+"Aradığın işletmeleri ve şehirleri belirle. Senin için listeyi hazırlayalım."
 
-Admin panel worker'ı bu ID üzerinden tanısın.
+## Alan 1 – Arama terimleri
 
----
+Kullanıcı birden fazla anahtar kelime girebilmeli.
 
-# 20. ADMIN WORKER CONTROL
+Örnekler:
 
-Admin panelde Workers sayfası oluştur.
+- Kuaför
+- Güzellik salonu
+- Berber
+- Nalbur
+- Oto servis
 
-Göster:
+Maksimum 10 keyword.
 
-* worker ID/name
-* online/offline
-* auto mode
-* status
-* current operation
-* current project/job
-* current search term
-* current batch
-* last heartbeat
-* uptime
-* processed count
-* error count
+Tag input kullan.
 
-Üst tarafta özet kartları:
+Kullanıcı kelime yazıp Enter ile ekleyebilmeli.
 
-```text
-Online Workers
-Working Workers
-Idle Workers
-Paused Workers
-Offline Workers
-```
+Her kelimenin yanında silme butonu olmalı.
 
-göster.
+Aynı kelime iki kez eklenmemeli.
 
-Admin şu komutları verebilsin:
+Boş kelimeler kabul edilmemeli.
 
-* Pause
-* Resume
-* Stop Auto Mode
-* Start/Resume Auto Mode
-* Release Current Task
-* Reset Worker
+Büyük/küçük harf farkından kaynaklanan tekrarlar engellenmeli.
 
-Browser extension bu komutları heartbeat/poll sırasında okuyup uygulamalıdır.
+Sayaç göster:
 
-Admin browser'a doğrudan bağlanmaya çalışmasın.
+"3/10 arama terimi"
 
-Worker tablosunda örneğin:
+En az bir arama terimi zorunlu.
 
-```text
-requested_action
-```
+## Alan 2 – İl seçimi
 
-ve gerekirse:
+Türkiye'nin 81 ili listelensin.
 
-```text
-requested_action_at
-```
+Çoklu seçim yapılabilsin.
 
-kullan.
+Arama yapılabilen combobox/multiselect kullan.
 
-Worker komutu uyguladıktan sonra temizlesin/acknowledge etsin.
+Kullanıcı istediği kadar il seçebilsin.
 
----
+Ayrıca:
 
-# 21. RELEASE CURRENT TASK
+"Tüm Türkiye'yi Seç"
 
-Admin:
+seçeneği bulunmalı.
 
-`Release Current Task`
+Tüm Türkiye seçilirse 81 il seçilmiş sayılmalı.
 
-dediğinde worker mümkün olduğunca güvenli şekilde mevcut scraping'i durdursun.
+Seçim kaldırılabilmeli.
 
-Task tamamlanmadıysa:
+En az bir il zorunlu.
 
-```text
-pending
-```
+## Liste adı
 
-durumuna geri dönsün.
-
-Worker ownership/lease temizlensin.
-
-Başka worker daha sonra alabilsin.
-
----
-
-# 22. QUEUE SAYFASI
-
-Admin panelde Queue ekranı oluştur.
-
-Sekmeler olabilir:
-
-```text
-All
-List
-Detail
-Running
-Pending
-Failed
-Completed
-```
-
-Gösterilecek temel bilgiler:
-
-* type
-* project
-* job
-* search term / business count
-* worker
-* status
-* claimed time
-* started time
-* elapsed time
-* attempts
-* error
-
-Queue realtime hissi vermeli.
-
-Ancak Supabase Free Plan nedeniyle gereksiz realtime subscription/polling oluşturma.
-
-Mümkünse:
-
-* yalnızca açık Queue ekranında realtime subscription
-
-veya
-
-* düşük frekanslı polling
-
-kullan.
-
-Dashboard kapalıyken gereksiz sorgu çalıştırma.
-
----
-
-# 23. PROJECT LIST
-
-Projects sayfasında tüm scraping projectleri göster.
-
-Her project için:
-
-* Project Name
-* Keyword
-* Location
-* Status
-* Search Terms
-* List Progress
-* Businesses Found
-* Unique Businesses
-* Detail Progress
-* Created Date
-
-göster.
-
-Progress bar kullan.
+Sistem seçilen terimlerden ve şehirlerden otomatik liste adı oluştursun.
 
 Örneğin:
 
-```text
-LIST
-32 / 48 tasks
-██████████████░░ 67%
+"Antalya Kuaför Listesi"
 
-DETAIL
-1,840 / 2,310
-████████████░░░░ 80%
-```
+"İstanbul ve Ankara Güzellik Salonları"
 
-Progress değerlerini mümkün olduğunca her render sırasında pahalı COUNT sorguları ile hesaplama.
+Liste adı isteğe bağlı değiştirilebilir olsun.
 
-Gerekirse scan_jobs üzerinde aggregate counter alanları tut.
+## Talep özeti
 
-Counter güncellemelerinde concurrency güvenli SQL/RPC kullan.
+Formun altında özet göster:
+
+Arama Terimleri:
+Kuaför, Berber
+
+Bölgeler:
+Antalya, Muğla
+
+Tahmini Hazırlanma Süresi:
+Yaklaşık 1 iş günü
+
+Bilgi mesajı:
+
+"Liste oluşturmak ücretsizdir. Yalnızca listenin tamamını açmak istediğinde kredi kullanırsın."
+
+CTA:
+
+"Liste Talebi Oluştur"
+
+## Liste talebi limiti
+
+Bir kullanıcının aynı anda maksimum 3 tamamlanmamış liste talebi bulunabilir.
+
+Tamamlanmamış durumlar:
+
+- queued
+- processing
+
+Ready veya failed durumları bu limite dahil edilmez.
+
+Kullanıcı 3 aktif talebe ulaştığında yeni talep oluşturamaz.
+
+Uyarı:
+
+"Aynı anda en fazla 3 liste talebi oluşturabilirsin. Yeni bir talep için mevcut listelerinden birinin tamamlanmasını beklemelisin."
+
+Bu kural yalnızca frontend'de uygulanmamalı.
+
+Backend tarafında atomik ve güvenli şekilde uygulanmalı.
+
+Eş zamanlı isteklerle limit aşılmamalı.
+
+Kullanıcının hiç kredisi olmasa bile liste talebi oluşturabilmeli.
+
+## Başarılı talep ekranı
+
+Talep başarıyla kaydedildikten sonra güzel bir başarı ekranı veya modal göster.
+
+Başlık:
+
+"Tebrikler! Liste talebini aldık 🎉"
+
+Açıklama:
+
+"İşletme listeni hazırlamaya başladığımızda süreç panelinden takip edebilirsin. Listen genellikle 1 iş günü içinde hazır olur."
+
+"Listen hazır olduğunda sana e-posta ile haber vereceğiz."
+
+Butonlar:
+
+"Listelerime Git"
+
+"Yeni Liste Oluştur"
+
+Gerçekte henüz başlamamış işlemi başlamış gibi göstermemeye dikkat et.
+
+Talebin sistem tarafından başarıyla kaydedildiğini doğrula.
 
 ---
 
-# 24. PROJECT DETAIL
+# 7. LİSTELERİM
 
-Project'e tıklayınca:
+Müşterinin oluşturduğu bütün liste talepleri burada gösterilmeli.
 
-* Overview
-* Search Terms
-* Businesses
-* Queue / Tasks
-* Errors
+Üst kısım:
 
-gibi bölümler göster.
+Başlık:
+"Listelerim"
 
-Search Terms tablosunda:
+Açıklama:
+"İşletme listelerini buradan yönetebilir ve hazır olanları indirebilirsin."
 
-```text
-Search Term
-Status
-Worker
-Businesses Found
-Started
-Completed
-Duration
-Attempts
-```
+Sağ tarafta:
 
-göster.
+"Yeni Liste Oluştur"
 
----
+Filtreler:
 
-# 25. BUSINESS LIST
-
-Businesses sayfası oluştur.
+- Tümü
+- Hazırlanıyor
+- Hazır
+- Başarısız
 
 Tablo kolonları:
 
-* Business Name
-* City
-* District
-* Phone
-* Website
-* Rating
-* Review Count
-* Business Type
-* Place ID
-* CID
-* Created Date
-* Detailed Date
+- Liste Adı
+- Bölgeler
+- Arama Terimleri
+- Talep Tarihi
+- Durum
+- İşletme Sayısı
+- İşlem
 
-Arama ve temel filtreleme ekle.
+Hazır olmayan listelerde henüz bilinmeyen işletme sayısı yerine "-" göster.
 
-Place ID ile arama destekle.
+Durum rozetleri:
 
-Business detayına tıklanınca tüm mevcut bilgiler gösterilebilir.
+Sırada: Gri
+Hazırlanıyor: Mavi
+Hazır: Yeşil
+Başarısız: Kırmızı
 
----
+Hazır listelerde buton:
 
-# 26. CSV EXPORT
+"Listeyi Görüntüle"
 
-Project tamamlandıktan sonra veya project detail içerisinden:
+Hazırlanan listelerde:
 
-`Export CSV`
+"Detayları Gör"
 
-butonu olsun.
+Başarısız listelerde uygun bilgilendirme göster.
 
-Butona basıldığında modal aç.
+Liste kartı veya tablosu üzerinden detay sayfasına gidilebilmeli.
 
-Kullanıcı export etmek istediği kolonları seçsin.
-
-Örneğin:
-
-```text
-Business Name
-City
-District
-Full Address
-Plus Code
-Phone
-Website
-Latitude
-Longitude
-Rating
-Review Count
-Business Type
-Image URL
-Working Hours
-Google Maps URL
-Place ID
-CID
-Search Term
-Created Date
-Detailed Date
-```
-
-CSV header isimleri tamamen İngilizce olsun.
-
-Aynı business birden fazla search term ile bulunduysa export davranışını açık şekilde tasarla.
-
-Tercihen project export'ta:
-
-`Search Term`
-
-bilgisini scan_results üzerinden getir.
-
-Aynı işletmenin birden fazla search term'i varsa mümkünse tek business satırı üret ve search termleri bir separator ile birleştir.
-
-Örneğin:
-
-```text
-"oto tamir Bursa Osmangazi | oto servis Bursa Osmangazi"
-```
-
-Böylece CSV'de aynı işletmenin gereksiz duplicate satırları oluşmasın.
+Sayfalama veya uygun veri miktarında pagination uygulanmalı.
 
 ---
 
-# 27. AUTH
+# 8. LİSTE DETAY SAYFASI
 
-Supabase Auth kullan.
+Bu ekran satış dönüşümü açısından en kritik ekrandır.
 
-Admin panel ilk açıldığında login ekranı göster.
+Amaç kullanıcıya hazırlanan verinin değerini göstermek.
 
-Sadece:
+Örnek:
 
-* Email / Username gerekiyorsa mevcut sisteme göre
-* Password
-* Login
+Kullanıcı Antalya Kuaför Listesi talep etti.
 
-olsun.
+Sistem listeyi hazırladı.
 
-Şunları EKLEME:
+Kullanıcı liste detayına geldi.
 
-* Signup
-* Forgot Password
-* Reset Password
-* Social Login
+Başlık:
 
-Admin kullanıcılarını Supabase üzerinden manuel oluşturacağım.
+"Antalya Kuaför Listesi"
 
-Login olmayan kullanıcı admin sayfalarına erişemesin.
+Durum:
+
+"Listen Hazır!"
+
+Alt açıklama:
+
+"Antalya bölgesindeki işletmeleri senin için topladık."
+
+## İstatistik kartları
+
+Liste tamamlandığında gerçek verilerden hesaplanan istatistikleri göster.
+
+Örnek:
+
+Toplam Eşsiz İşletme:
+2.450
+
+Web Sitesi Olmayan:
+1.320
+
+4 Yıldız Altındaki:
+380
+
+Telefon Bilgisi Bulunan:
+1.980
+
+Web Sitesi Bulunan:
+1.130
+
+Kullanılabilir E-posta Bulunan:
+420
+
+İstatistikler yalnızca veritabanında gerçekten bulunan alanlar üzerinden hesaplanmalı.
+
+Veri yoksa tahmini sayı üretme.
+
+İstatistikler mümkünse liste tamamlandığında hesaplanıp saklansın.
+
+Performans için her sayfa açılışında tüm kayıtları tekrar tekrar tarama.
+
+Boş veya eksik puan değerlerini 4 yıldız altı olarak sayma.
+
+Aynı işletmenin tekrarlarını eşsiz işletme sayısına dahil etme.
+
+## Satış odaklı bilgilendirme
+
+İstatistiklerin altında bir değer önerisi kartı göster.
+
+Örnek:
+
+"Bu listede 1.320 web sitesi olmayan işletme bulunuyor!"
+
+Alt açıklama:
+
+"Bu işletmeler web tasarım, dijital pazarlama ve müşteri kazanımı hizmetleri için potansiyel hedef kitlen olabilir."
+
+Diğer örnek:
+
+"380 işletmenin puanı 4 yıldızın altında."
+
+"Bu işletmeler müşteri deneyimi ve dijital itibar hizmetleri açısından araştırılabilecek potansiyel fırsatlar sunabilir."
+
+Bu metinler yalnızca gerçek istatistiklere göre dinamik oluşturulmalı.
+
+Kesin satış veya müşteri kazanımı vadetme.
+
+## Ücretsiz 10 işletme önizlemesi
+
+Kullanıcı satın alma yapmadan 10 işletmenin gerçek verilerini görebilmeli.
+
+Tablo:
+
+- İşletme Adı
+- Şehir
+- Telefon
+- Web Sitesi
+- Puan
+- Adres (varsa)
+
+Bu 10 kayıt tamamen ücretsiz görüntülenebilmeli.
+
+"10 Örnek İşletmeyi İndir" butonu bulunmalı.
+
+Ücretsiz örnek CSV veya XLSX indirilebilmeli.
+
+Bu işlem kredi düşürmemeli.
+
+Her görüntülemede farklı 10 kayıt gösterme. Listeye özgü sabit örnek kayıtlar kullan.
+
+Ücretsiz örnek ve istatistikler backend üzerinden kontrollü sunulmalı.
+
+İndirilmeyen diğer işletmelerin ham verilerini tarayıcıya gönderme.
+
+## Tam listeyi açma
+
+Örnek:
+
+Toplam eşsiz işletme:
+2.450
+
+Gerekli kredi:
+2.450
+
+Kullanıcının kredisi:
+1.000
+
+Eksik kredi:
+1.450
+
+Buton:
+
+"Tam Listeyi Aç – 2.450 Kredi"
+
+Kredi yeterli değilse buton kredi satın alma modalını açmalı.
+
+Modal:
+
+"Yeterli Krediniz Bulunmuyor"
+
+"Bu listeyi açabilmek için 2.450 krediye ihtiyacınız var. Mevcut bakiyeniz 1.000 kredi."
+
+"En az 1.450 kredi daha yüklemeniz gerekiyor."
+
+Buton:
+
+"Kredi Satın Al"
+
+Kredi yeterliyse kullanıcıya onay ekranı göster:
+
+"Bu listeyi açmak için 2.450 krediniz kullanılacak. Listeyi daha sonra sınırsız kez tekrar indirebilirsiniz."
+
+Buton:
+
+"2.450 Kredi Kullan ve Listeyi Aç"
+
+ÖNEMLİ KURAL:
+
+Kredi liste her indirildiğinde düşmeyecek.
+
+Kredi tam listeye ilk erişim hakkı açıldığında düşecek.
+
+Kullanıcı bir kez ödeme yaptıktan sonra aynı listeyi tekrar tekrar ücretsiz indirebilecek.
+
+Ödeme sonrası:
+
+- Liste kullanıcının hesabına açılır.
+- Kredi bakiyesi azalır.
+- Kredi hareketi oluşturulur.
+- Tam liste tablo halinde görüntülenebilir.
+- CSV ve XLSX indirilebilir.
+- Sonraki indirmeler kredi tüketmez.
+
+Listeyi açma ve kredi düşme işlemleri tek bir güvenli veritabanı transaction'ı içinde gerçekleştirilmelidir.
+
+İstek iki kez gönderilse bile iki kez kredi düşmemeli.
+
+İlk açma işlemi başarısız olursa bakiye yanlışlıkla düşmemeli.
+
+Yeterli kredisi olmayan kullanıcıya tam veri hiçbir API veya doğrudan dosya URL'si üzerinden erişilebilir olmamalı.
 
 ---
 
-# 28. RLS / SECURITY
+# 9. KREDİ SİSTEMİ
 
-Supabase MCP kullanarak gerekli RLS politikalarını oluştur.
+Platform kredi bazlı çalışır.
 
-Browser extension'ın database'e sınırsız admin erişimi olmasın.
+1 eşsiz işletme = 1 kredi.
 
-Özellikle extension içine:
+Örnek:
 
-`service_role`
+500 işletmelik liste:
+500 kredi
 
-key KOYMA.
+2.450 işletmelik liste:
+2.450 kredi
 
-Service role key browser extension veya client-side Next.js bundle içerisine kesinlikle gömülmemelidir.
+10.000 işletmelik liste:
+10.000 kredi
 
-Admin authenticated kullanıcılar gerekli admin tablolarını okuyabilsin/yönetebilsin.
+Aynı liste tekrar indirilirse:
+0 kredi
 
-Worker'ın yapabileceği işlemleri mümkün olduğunca kontrollü RPC/API endpointleri üzerinden sınırla.
+Ücretsiz 10 işletmelik örnek:
+0 kredi
 
-Worker:
+Kullanıcı liste talebi oluştururken:
+0 kredi
 
-* register
-* heartbeat
-* claim work
-* submit list result
-* submit detail result
-* complete/fail work
-* requested action kontrolü
+## Kredi paketleri
 
-gibi ihtiyaç duyduğu operasyonları yapabilsin.
+Aşağıdaki paketleri tanımla:
 
-Doğrudan kritik tablolar üzerinde sınırsız UPDATE/DELETE yetkisi verme.
+| Paket | Kredi | Fiyat |
+|---|---:|---:|
+| Başlangıç | 100 | 200 TL |
+| Popüler | 1.000 | 1.200 TL |
+| Profesyonel | 5.000 | 5.000 TL |
+| Kurumsal | 10.000 | 8.000 TL |
 
----
+Paketleri veritabanında yönetilebilir hale getir.
 
-# 29. BATCH DATABASE OPERATIONS
+Frontend'de sabit fiyatlara bağımlı olma.
 
-Supabase Free Plan kullanıyoruz.
+İleride admin panelinden yeni paket eklenebilmeli, mevcut paketler değiştirilebilmeli veya pasifleştirilebilmeli.
 
-Bu nedenle database/network kullanımını optimize et.
+"Popüler" paketini görsel olarak vurgulayabilirsin.
 
-ŞUNU YAPMA:
+## Kredi satın alma sayfası
 
-```text
-100 business
-=
-100 ayrı HTTP request
-=
-100 ayrı INSERT
-```
+Başlık:
 
-Bunun yerine:
+"İhtiyacın Kadar Kredi Al"
 
-```text
-100 business
-=
-1 batch request
-=
-batch UPSERT
-```
+Alt açıklama:
 
-mantığını kullan.
+"Kredilerinle işletme listelerinin tamamına erişebilirsin. Kullanmadığın kredilerin hesabında kalır."
 
-LIST sonuçlarında da aynı şekilde batch insert/upsert kullan.
+Üst bölüm:
 
----
+"Mevcut Bakiyen: 750 Kredi"
 
-# 30. INDEXLER
+Altında paket kartları.
 
-Query patternlerini analiz ederek gerekli PostgreSQL indexlerini oluştur.
+Her pakette:
 
-Özellikle düşün:
+- Paket adı
+- Kredi miktarı
+- Fiyat
+- Kredi başı maliyet
+- Satın al butonu
 
-```text
-businesses(place_id)
-businesses(cid)
-businesses(detail_status)
-businesses(next_detail_scan_at)
+Shopier ödeme altyapısını kullanacağız.
 
-scan_tasks(status)
-scan_tasks(scan_job_id, status)
-scan_tasks(worker_id)
-scan_tasks(lease_expires_at)
+Şu anda Shopier otomatik entegrasyonu bulunmuyor.
 
-scan_results(scan_job_id)
-scan_results(scan_task_id)
-scan_results(business_id)
+Satın al butonu ilgili paketin admin tarafından tanımlanan Shopier bağlantısına yönlendirmeli.
 
-workers(last_heartbeat_at)
-```
+Shopier linklerini veritabanı veya güvenli konfigürasyondan yönetilebilir yap.
 
-Ancak gereksiz index oluşturma.
+Örnek link uydurma.
 
-UNIQUE constraint'in zaten index oluşturduğu durumlarda duplicate index ekleme.
+Gerçek linkler henüz tanımlanmamışsa admin tarafından yapılandırılması gerektiğini göster.
 
----
+## Manuel kredi yükleme süreci
 
-# 31. EXTENSION AUTO MODE STATE MACHINE
+Şu an ödeme sonrası kredi yüklemesi manuel yapılacak.
 
-Extension tarafında açık bir state machine kullan.
+Akış:
 
-Örneğin:
+1. Kullanıcı Shopier sayfasına gider.
+2. Satın alma gerçekleştirir.
+3. Admin ödemeyi Shopier üzerinden doğrular.
+4. Admin panelinden kullanıcıyı bulur.
+5. Kredi paketini seçer.
+6. Kullanıcıya kredi yükler.
+7. Kullanıcının bakiyesi güncellenir.
+8. İşlem kredi hareketlerine kaydedilir.
 
-```text
-STOPPED
-    ↓
-REGISTERING
-    ↓
-IDLE
-    ↓
-CLAIMING
-    ↓
-LIST_SCRAPING
-    ↓
-SUBMITTING
-    ↓
-IDLE
+Kullanıcıya ödeme sonrası şu mesaj gösterilebilir:
 
-veya
+"Ödemeniz tamamlandıktan ve doğrulandıktan sonra kredileriniz hesabınıza tanımlanacaktır."
 
-IDLE
-    ↓
-CLAIMING
-    ↓
-DETAIL_SCRAPING
-    ↓
-SUBMITTING
-    ↓
-IDLE
-```
+Shopier dönüşünü tek başına ödeme kanıtı kabul etme.
 
-Hata durumunda:
+Otomatik kredi yüklemesi yapma.
 
-```text
-ERROR
-↓
-RETRY WAIT
-↓
-IDLE
-```
-
-Browser reload/navigation durumlarını hesaba kat.
-
-Google Maps sayfası yeniden yüklense bile mümkün olduğunca worker state kaybolmasın.
-
-Extension local storage'da yalnızca gerekli state tut.
-
-Database merkezi source of truth olsun.
+İleride ödeme webhook entegrasyonu eklenebilecek şekilde mimari oluştur.
 
 ---
 
-# 32. SCRAPER DAYANIKLILIĞI
+# 10. KREDİLERİM EKRANI
 
-Extension'ın uzun süre bakım görmeden çalışmasını istiyoruz.
+Bu ekranda kullanıcının kredi bilgileri gösterilecek.
 
-Mevcut DOM selectorları incele.
+Üstte büyük bakiye kartı:
 
-Scraper kodunu:
+"Mevcut Krediniz"
 
-* tek bir dev component içerisine doldurma
-* scraping engine
-* queue client
-* worker state
-* Supabase/API communication
-* UI
+"2.450 Kredi"
 
-olarak mantıksal modüllere ayır.
+Buton:
 
-Google Maps DOM selectorlarını mümkün olduğunca merkezi bir dosyada tut.
+"Kredi Yükle"
 
-Bir selector değişirse tüm scraper'ı değiştirmek zorunda kalmayalım.
+Altında küçük özet kartları:
 
-Selector fallback mekanizması kullan.
+- Toplam Yüklenen Kredi
+- Toplam Kullanılan Kredi
+- Güncel Bakiye
 
-Örneğin mümkün olduğunda:
+## Kredi hareketleri
 
-```text
-primary selector
-fallback selector
-semantic/attribute selector
-```
+Tablo kolonları:
 
-mantığı uygula.
+- Tarih
+- İşlem Türü
+- Açıklama
+- Kredi Değişimi
+- İşlem Sonrası Bakiye
 
-Rastgele `setTimeout` zincirleri yerine reusable wait helper'ları kullan.
+Örnek:
 
-Örneğin:
+28.10.2026 – Kredi Yükleme – 1.000 Kredi Paketi – +1.000
 
-```js
-waitForElement()
-waitForCondition()
-retry()
-sleep()
-```
+29.10.2026 – Liste Açma – Antalya Kuaför Listesi – -650
 
-gibi utility fonksiyonları oluştur.
+30.10.2026 – Kredi Yükleme – 5.000 Kredi Paketi – +5.000
 
-Infinite loop oluşmasını engelle.
+Pozitif işlemler yeşil, negatif işlemler kırmızı gösterilebilir.
 
-Her scraping operasyonunda timeout bulunmalı.
+Kullanıcının kredi bakiyesi elle frontend'de hesaplanmamalı.
 
----
+Backend'deki güvenilir bakiyeyi kullan.
 
-# 33. IDEMPOTENCY
+Tüm kredi hareketleri denetlenebilir şekilde saklanmalı.
 
-Tüm kritik submit işlemleri idempotent tasarlanmalıdır.
+Eski hareketler düzenlenmemeli veya silinmemeli.
 
-Worker aynı LIST sonucu internet problemi nedeniyle iki kez gönderirse duplicate business veya duplicate scan_result oluşmamalıdır.
-
-Worker DETAIL sonucunu iki kez gönderirse ikinci request sistemi bozmamalıdır.
-
-Database constraint + UPSERT kullan.
+Gerekirse düzeltme için yeni bir ters kayıt oluşturulmalı.
 
 ---
 
-# 34. NETWORK FAILURE
+# 11. ADMİN KREDİ YÜKLEME
 
-Extension sonuç topladıktan sonra network giderse sonuçları hemen kaybetme.
+Mevcut admin paneline uygun bir kredi yönetim bölümü ekle.
 
-Küçük bir local pending submission mekanizması oluştur.
+Admin bir kullanıcı seçebilmeli.
 
-Örneğin extension storage içerisinde:
+Kullanıcı arama:
 
-```text
-pendingSubmissions
-```
+- Ad
+- E-posta
+- Telefon
 
-tutulabilir.
+Seçilen kullanıcı detaylarında:
 
-Submit başarılı olduğunda temizle.
+- Ad Soyad
+- E-posta
+- Mevcut Kredi
+- Toplam Yüklenen Kredi
+- Toplam Harcanan Kredi
 
-Ancak burada devasa scraping datası biriktirme.
+Kredi yükleme alanı:
 
-Sadece henüz server tarafından acknowledge edilmemiş son batch/batchler tutulmalıdır.
+"Paket Seç"
 
----
+Paket seçimi dropdown şeklinde olsun.
 
-# 35. TASK COMPLETION ATOMICITY
+Seçilen paketin kredi miktarı gösterilsin.
 
-Özellikle LIST scraping'de şu hata oluşmamalı:
+Örnek:
 
-1. worker task completed yaptı
-2. results insert başarısız oldu
+1.000 Kredi Paketi
 
-Bu nedenle mümkünse:
+Yüklenecek:
+1.000 Kredi
 
-`submit_list_results`
+Not alanı:
 
-RPC/server operation içerisinde tek transaction mantığı kullan:
+"Shopier sipariş numarası / açıklama"
 
-1. businesses UPSERT
-2. scan_results INSERT/UPSERT
-3. task COMPLETED
-4. counters UPDATE
+Buton:
 
-Hepsi başarılıysa commit.
+"Kredi Yükle"
 
-Hata varsa task completed olmamalı.
+Butona basıldığında onay modalı aç:
 
-DETAIL submission için de benzer güvenli mekanizma kur.
+"Ahmet Yılmaz adlı kullanıcıya 1.000 kredi yüklemek istediğinize emin misiniz?"
 
----
+Onay sonrası:
 
-# 36. WORKER HEARTBEAT
+- Kredi bakiyesini artır.
+- Credit transaction oluştur.
+- İşlemi yapan admin ID'sini kaydet.
+- İşlem tarihini kaydet.
+- Paket bilgisini kaydet.
+- Shopier sipariş referansını sakla.
 
-Worker yaklaşık 20-30 saniyede bir heartbeat gönderebilir.
+Aynı Shopier siparişi yanlışlıkla iki kez kredi yüklememeli.
 
-Heartbeat içerisinde minimum:
+Sipariş referansı girilmişse ilgili işlem için mükerrer yüklemeyi engelle.
 
-```text
-worker_id
-status
-auto_mode
-current_task_type
-current_task_id
-```
+Kritik kredi işlemleri yalnızca sunucu tarafında ve admin yetki kontrolünden sonra çalışmalı.
 
-bilgileri olsun.
-
-Her saniye heartbeat gönderme.
-
-Admin UI online durumunu:
-
-```text
-now - last_heartbeat_at
-```
-
-üzerinden hesaplasın.
-
-Örneğin makul timeout sonrası offline göster.
+Normal kullanıcı bu fonksiyonu çağıramamalı.
 
 ---
 
-# 37. ADMIN DASHBOARD
+# 12. HESABIM
 
-Ana dashboard sade ve operasyon odaklı olsun.
+Müşteri hesap bilgilerini buradan düzenleyebilmeli.
 
-Üst kartlar:
+Alanlar:
 
-```text
-Active Projects
-Pending List Tasks
-Pending Detail Businesses
-Active Workers
-Working Workers
-Total Businesses
-```
+- Ad Soyad
+- E-posta
+- Telefon
+- Hesap Oluşturulma Tarihi
 
-Alt tarafta:
+Ayrıca:
 
-* Running Workers
-* Current Queue
-* Recent Projects
-* Recent Errors
+- Şifre değiştirme
+- Bildirim tercihleri
+- Onboarding cevaplarını güncelleme
+- Çıkış yap
 
-gösterilebilir.
+E-posta güncelleme ve şifre değiştirme Supabase Auth üzerinden güvenli yapılmalı.
 
-Dashboard'ı gereksiz grafiklerle doldurma.
+Bildirim tercihleri:
 
-Asıl amaç scraper operasyonunu hızlı takip etmek.
+- E-posta ile liste hazır bildirimi
+- SMS ile bilgilendirme (altyapı hazır değilse devre dışı)
+- WhatsApp ile bilgilendirme (altyapı hazır değilse devre dışı)
 
----
-
-# 38. RESPONSIVE UI
-
-Admin panel desktop + tablet + mobile tam responsive olmalı.
-
-Desktop'ta sidebar olabilir.
-
-Mobilde sidebar drawer/bottom navigation gibi uygun responsive çözüm kullan.
-
-Büyük tablolar mobilde kırılmamalı.
-
-Gerekirse:
-
-* horizontal scroll
-* mobile card representation
-* önemli kolonları önceliklendirme
-
-kullan.
+Güvenlik bildirimleri ve pazarlama izinleri ayrı ele alınmalı.
 
 ---
 
-# 39. ERROR LOGGING
+# 13. VERİTABANI TASARIMI
 
-Scraping hatalarını takip edebilmek için gerekiyorsa küçük bir:
+Önce mevcut Supabase şemasını incele.
 
-```text
-scrape_errors
-```
+Gerekli tablolar yoksa oluştur.
 
-tablosu oluştur.
+Önerilen veri modeli:
 
-Örneğin:
+## profiles
 
-```text
-id
-worker_id
-scan_job_id
-scan_task_id
-business_id
-error_type
-message
-context
-created_at
-```
+- id
+- full_name
+- email
+- phone
+- role
+- onboarding_completed
+- onboarding_step
+- created_at
+- updated_at
 
-Ancak devasa log üretme.
+id, Supabase Auth kullanıcı ID'siyle bağlantılı olsun.
 
-Normal başarılı işlemleri log tablosuna yazma.
+## onboarding_responses
 
-Sadece operasyonel hata/debug için gerekli kayıtları tut.
+- id
+- user_id
+- usage_purposes
+- user_type
+- monthly_data_need
+- target_business_description
+- created_at
+- updated_at
 
----
+## list_requests
 
-# 40. MAX DETAIL GELECEK UYUMLULUĞU
+- id
+- user_id
+- title
+- keywords
+- cities
+- status
+- business_count
+- created_at
+- started_at
+- completed_at
+- updated_at
+- error_message
 
-Şu anda MAX_DETAIL scraping IMPLEMENTE ETME.
+Status değerleri:
 
-Ancak database tasarımında:
+queued
+processing
+ready
+failed
 
-```text
-max_detailed_at
-```
+Mevcut scraping sistemi farklı durumlar kullanıyorsa uyarlama katmanı oluştur.
 
-alanı olsun.
+## list_businesses
 
-Task/job type yapısı gelecekte:
+Mevcut işletme/veri tablosu varsa tekrar oluşturma.
 
-```text
-max_detail
-```
+Gerekli ilişkiyi mevcut modele ekle.
 
-eklenmesini engellemesin.
+İşletme bilgileri mevcut scraping altyapısındaki alanlarla uyumlu olmalı.
 
-UI'da şu anda MAX_DETAIL göstermene gerek yok.
+Örnek:
 
----
+- id
+- list_id
+- business_name
+- phone
+- website
+- address
+- city
+- rating
+- review_count
+- email
+- created_at
 
-# 41. DOSYA YAPISI
+Gerçek şemaya göre uyarlama yap.
 
-Mevcut projeyi inceleyerek uygun yapıyı kendin belirle.
+## list_statistics
 
-Ancak mantıksal olarak kodları şu sorumluluklara ayır:
+- id
+- list_id
+- unique_business_count
+- without_website_count
+- below_four_stars_count
+- with_phone_count
+- with_website_count
+- with_email_count
+- calculated_at
 
-```text
-admin UI
-auth
-supabase client
-project services
-queue services
-worker services
-export services
+## credit_packages
 
-extension
-    worker
-    queue client
-    scraper
-        list scraper
-        detail scraper
-        selectors
-        helpers
-    storage
-    ui
-```
+- id
+- name
+- credits
+- price_try
+- shopier_url
+- is_active
+- is_popular
+- sort_order
+- created_at
 
-Mevcut çalışan extension mimarisini gereksiz yere bozma.
+## credit_wallets
 
----
+- user_id
+- balance
+- updated_at
 
-# 42. SUPABASE MCP
+## credit_transactions
 
-Supabase MCP bağlı.
+- id
+- user_id
+- amount
+- balance_after
+- transaction_type
+- description
+- list_id
+- package_id
+- admin_id
+- payment_reference
+- idempotency_key
+- created_at
 
-Sadece SQL dosyası üretip bana "bunu çalıştır" deme.
+İşlem türleri:
 
-MCP üzerinden mümkün olan gerekli işlemleri gerçekleştir:
+- purchase
+- list_unlock
+- admin_adjustment
+- refund
 
-* tabloları oluştur
-* constraintleri oluştur
-* foreign keyleri oluştur
-* indexleri oluştur
-* RPC/functionları oluştur
-* RLS'yi aktifleştir
-* policies oluştur
+## list_unlocks
 
-Migration/SQL dosyalarını da repository içerisinde tut ki database yapısı version control altında olsun.
+- id
+- list_id
+- user_id
+- credits_spent
+- unlocked_at
 
----
+Aynı kullanıcı ve liste için yalnızca bir unlock kaydı bulunmalı.
 
-# 43. DATABASE TASARIMINI ÖNCE NETLEŞTİR
+Kredi düşme ve unlock oluşturma atomik olmalı.
 
-Kodlamaya başlamadan önce mevcut repository'yi incele.
+## notification_preferences
 
-Ardından kısa şekilde nihai database modelini belirle.
+- user_id
+- email_enabled
+- sms_enabled
+- whatsapp_enabled
+- updated_at
 
-Minimum olarak şu kavramlar bulunmalı:
-
-```text
-projects
-scan_jobs
-scan_tasks
-businesses
-scan_results
-workers
-```
-
-Gerçekten gerekiyorsa:
-
-```text
-detail_tasks
-scrape_errors
-```
-
-gibi ek tablolar ekleyebilirsin.
-
-Ancak tablo sayısını gereksiz artırma.
-
----
-
-# 44. ÖNEMLİ MİMARİ KURALLAR
-
-Şunlara kesinlikle dikkat et:
-
-1. Aynı `place_id` businesses içerisinde duplicate olamaz.
-
-2. Aynı task iki worker tarafından claim edilemez.
-
-3. Worker crash olduğunda task sonsuza kadar running kalamaz.
-
-4. LIST scraping her yeni project için yeniden yapılır.
-
-5. DETAIL scraping aynı business için başlangıçta yalnızca bir kere yapılır.
-
-6. Aynı business farklı project/search termlerde bulunabilir.
-
-7. Search term bilgisini business tablosuna bağlama.
-
-8. DETAIL scraping 100 business batch olarak alınabilmelidir.
-
-9. LIST scraping worker'a tek search term/task olarak verilmelidir.
-
-10. Batch database operations kullan.
-
-11. Extension içerisine Supabase service role key koyma.
-
-12. Network retry nedeniyle duplicate kayıt oluşmamalıdır.
-
-13. Extension mümkün olduğunca kendi kendine çalışmalıdır.
-
-14. Database merkezi source of truth olmalıdır.
-
-15. Supabase Free Plan kaynaklarını gereksiz tüketme.
+Mevcut tablolarla örtüşen alanları gereksiz yere çoğaltma.
 
 ---
 
-# 45. UYGULAMA SIRASI
+# 14. GÜVENLİK VE RLS
 
-Projeyi yarım bırakmadan aşağıdaki sırayla ilerle:
+Supabase Row Level Security doğru yapılandırılmalı.
 
-### Faz 1
+Kurallar:
 
-Mevcut repository ve extension scraper yapısını incele.
+- Kullanıcı yalnızca kendi profilini okuyabilmeli.
+- Kullanıcı yalnızca kendi listelerini görebilmeli.
+- Kullanıcı yalnızca kendi kredilerini görebilmeli.
+- Kullanıcı yalnızca kendi kredi hareketlerini görebilmeli.
+- Kullanıcı başka müşterinin işletme verilerine ulaşamamalı.
+- Tam listeye yalnızca unlock hakkı olan kullanıcı erişebilmeli.
+- Unlock olmayan kullanıcı yalnızca izin verilen 10 örnek işletmeyi ve istatistikleri alabilmeli.
+- Kullanıcı kredi bakiyesini doğrudan değiştirememeli.
+- Kullanıcı list_request status, business_count veya completed_at alanlarını değiştirememeli.
+- Kullanıcı unlock kaydını kendisi oluşturamamalı.
+- Kullanıcı admin rolünü kendisine verememeli.
+- Service role key hiçbir zaman tarayıcıya gönderilmemeli.
 
-### Faz 2
+Admin rolünü istemciden gelen bir alan üzerinden kabul etme.
 
-Database schema + migrationları oluştur.
+Güvenilir backend yetkilendirmesi kullan.
 
-### Faz 3
+Önemli:
 
-Supabase RLS + RPC/atomic queue fonksiyonlarını oluştur.
+Kredi yükleme, kredi düşme ve liste açma işlemleri database transaction veya güvenli PostgreSQL fonksiyonu ile yapılmalı.
 
-### Faz 4
+Bunlar için gerekli RPC / server-side işlemleri uygula.
 
-Admin authentication oluştur.
+Eş zamanlı isteklerde kredi bakiyesi eksiye düşmemeli.
 
-### Faz 5
+Kritik işlemlerde idempotency kullan.
 
-Admin layout/dashboard oluştur.
-
-### Faz 6
-
-New Project + mevcut Keyword_planner entegrasyonunu yap.
-
-### Faz 7
-
-Projects / Project Detail / Queue ekranlarını oluştur.
-
-### Faz 8
-
-Workers dashboard ve worker command sistemini oluştur.
-
-### Faz 9
-
-Extension UI'ı sadeleştir ve persistent worker identity oluştur.
-
-### Faz 10
-
-Extension Auto Mode state machine oluştur.
-
-### Faz 11
-
-LIST queue claim → scrape → batch submit akışını bağla.
-
-### Faz 12
-
-DETAIL batch claim → scrape → batch submit akışını bağla.
-
-### Faz 13
-
-Heartbeat + lease expiration + retry/recovery mekanizmalarını tamamla.
-
-### Faz 14
-
-Business list + Project Business list oluştur.
-
-### Faz 15
-
-CSV column selector + export sistemini oluştur.
-
-### Faz 16
-
-Concurrency, duplicate ve crash recovery testlerini yap.
+SQL migration ve RLS politikalarını oluştur.
 
 ---
 
-# 46. TEST EDİLMESİ GEREKEN KRİTİK SENARYOLAR
+# 15. LİSTE HAZIRLANMA SÜRECİ
 
-Kod bittikten sonra özellikle test et:
+Müşteri bir talep oluşturduğunda:
 
-### Test 1
+status = queued
 
-Tek worker + tek LIST task.
+İşleme başlanınca:
 
-### Test 2
+status = processing
 
-10 worker aynı anda pending task istediğinde aynı task iki worker'a verilmemeli.
+Başarıyla tamamlanınca:
 
-### Test 3
+status = ready
 
-Aynı place_id aynı search term içerisinde 5 kere bulunursa business bir kere oluşmalı.
+Hata olursa:
 
-### Test 4
+status = failed
 
-Aynı place_id 5 farklı search term'de bulunursa business bir kere, scan_results ilişkileri ayrı oluşmalı.
+Liste tamamlanırken:
 
-### Test 5
+1. İşletme verileri kaydedilir.
+2. Tekrar eden işletmelerin nasıl ayıklandığı belirlenir.
+3. Eşsiz işletme sayısı hesaplanır.
+4. İstatistikler hesaplanır.
+5. Ücretsiz örnek 10 işletme belirlenir.
+6. Liste ready durumuna geçer.
+7. Müşteriye liste hazır e-postası gönderilmesi tetiklenir.
 
-Worker LIST scraping ortasında kapanırsa lease bittikten sonra task tekrar alınabilmeli.
+Mevcut arka plan tarama sistemi varsa onunla entegre ol.
 
-### Test 6
+Bu müşteri paneli geliştirmesi için yeni scraping motoru yazma.
 
-Worker sonuçları submit ettikten sonra aynı request tekrar gönderilirse duplicate oluşmamalı.
+Mevcut sistem yoksa liste talebini gerçek veritabanına kaydet ve ileride backend tarafından tüketilecek açık bir iş akışı oluştur.
 
-### Test 7
+Sahte şekilde 1 gün bekleyen timer veya otomatik başarı simülasyonu yapma.
 
-100 pending DETAIL business olduğunda DETAIL batch alınmalı.
+Hazır e-postasını mümkünse mevcut e-posta servisinden gönder.
 
-### Test 8
+E-posta servisi henüz yoksa açık entegrasyon noktası ve bildirim kaydı oluştur; gönderildi olarak işaretleme.
 
-99 DETAIL beklerken LIST task varsa LIST devam etmeli.
-
-### Test 9
-
-LIST tamamen bittiğinde 37 DETAIL business kaldıysa 37'si de DETAIL taramaya alınmalı.
-
-### Test 10
-
-İki worker aynı anda DETAIL batch isterse aynı business iki batch içerisinde bulunmamalı.
-
-### Test 11
-
-100 DETAIL kaydından 4 tanesi hata verirse diğer 96 kayıt kaybolmamalı.
-
-### Test 12
-
-Admin worker'a Pause gönderdiğinde worker güvenli şekilde pause olmalı.
-
-### Test 13
-
-Offline worker'ın sahiplendiği iş lease sonrasında kurtarılmalı.
-
-### Test 14
-
-CSV export'ta aynı business gereksiz duplicate satırlar oluşturmamalı.
+Tekrarlanan durum güncellemelerinde müşteriye aynı hazır e-postası birden fazla kez gönderilmesin.
 
 ---
 
-# 47. SON KONTROL
+# 16. KULLANICI DENEYİMİ DETAYLARI
 
-İşlem sonunda:
+Bütün süreçte kullanıcıya net durum bilgisi ver.
 
-* build çalıştır
-* syntax hatalarını düzelt
-* console errorları kontrol et
-* Supabase query/RPC hatalarını kontrol et
-* responsive ekranları kontrol et
-* extension manifest/build hatalarını kontrol et
-* RLS nedeniyle worker operasyonlarının kırılmadığını test et
-* admin olmayan erişimin kritik verilere ulaşamadığını kontrol et
-* service role key'in client bundle veya extension içerisinde bulunmadığını doğrula
-* duplicate/concurrency senaryolarını test et
+Örnek durum metinleri:
 
-Eksik TODO bırakma.
+Sırada:
 
-Mevcut çalışan scraper fonksiyonlarını gereksiz yere değiştirme.
+"Talebin alındı. Hazırlık sırasına eklendi."
 
-Önceliğimiz gösterişli bir uygulama değil:
+Hazırlanıyor:
 
-**uzun süre otonom çalışabilen, aynı işi iki worker'a vermeyen, duplicate üretmeyen, düşük Supabase kaynak tüketen sağlam bir scraping queue sistemi oluşturmaktır.**
+"İşletme verilerini senin için topluyoruz."
+
+Hazır:
+
+"Listen hazır! İşletme verilerini keşfedebilirsin."
+
+Başarısız:
+
+"Listen hazırlanırken bir sorun oluştu."
+
+Hazırlanıyor durumundaki listeler için progress bar kullanılacaksa gerçek ilerleme bilgisi bulunmalı.
+
+Gerçek bilgi yoksa sahte yüzde gösterme.
+
+Bunun yerine animasyonlu durum göstergesi kullan.
+
+Ayrıca:
+
+- Toast bildirimleri
+- Modal'lar
+- Skeleton loading
+- Responsive tablolar
+- Form validation
+- Hata mesajları
+- Empty state'ler
+- Başarılı işlem bildirimleri
+- Kaydetme sırasında disabled butonlar
+- Çift tıklamayı engelleme
+
+Bütün butonlar gerçekten çalışmalı.
+
+İşlevsiz buton veya dekoratif sahte özellik bırakma.
+
+---
+
+# 17. DOSYA İNDİRME
+
+Kullanıcı listeyi unlock ettikten sonra CSV ve XLSX formatında indirebilmeli.
+
+Türkçe karakterler doğru aktarılmalı.
+
+CSV UTF-8 BOM destekleyebilir.
+
+Dosya adı anlaşılır olmalı.
+
+Örnek:
+
+antalya-kuafor-listesi-2026-10-28.xlsx
+
+İndirilen dosyanın kolonları mevcut veri alanlarına göre oluşturulmalı.
+
+İlgili kolonda hiç veri yoksa uygun şekilde boş bırak.
+
+Sadece ilk 10 örnek veriye erişimi olan kullanıcı tam listeyi indirememeli.
+
+CSV veya XLSX indirme endpoint'leri sunucu tarafında yetki kontrolü yapmalı.
+
+Yalnızca frontend'de butonu gizlemek güvenlik için yeterli değildir.
+
+---
+
+# 18. İŞ KURALLARI VE SINIR DURUMLARI
+
+Aşağıdaki kuralları eksiksiz uygula:
+
+1. Kullanıcı sıfır krediyle hesap açabilir.
+2. Sıfır krediyle liste talep edebilir.
+3. Aynı anda en fazla 3 tamamlanmamış talebi olabilir.
+4. En fazla 10 keyword girebilir.
+5. Türkiye'nin 81 ilinden istediğini seçebilir.
+6. Tüm Türkiye seçeneği bulunur.
+7. Hazırlanan listeyi satın almadan istatistiklerini görebilir.
+8. İlk 10 örnek işletmeyi ücretsiz görebilir ve indirebilir.
+9. Tam liste yalnızca yeterli krediyle açılır.
+10. Tam liste ilk açıldığında işletme sayısı kadar kredi düşer.
+11. Aynı listeye erişim hakkı satın alındıktan sonra tekrar kredi düşmez.
+12. Aynı anda gönderilen unlock istekleri çift kredi tüketmez.
+13. Kullanıcı başka müşterinin listesine erişemez.
+14. Liste henüz hazır değilken kredi düşmez.
+15. Hazır liste sıfır işletme içeriyorsa kullanıcıdan kredi alınmaz.
+16. İşletme sayısı hesaplanırken tekrar eden kayıtlar iki kez fiyatlandırılmaz.
+17. Admin kredi yüklemesi denetlenebilir hareket kaydı oluşturur.
+18. Kredi yükleme ancak gerçek ödeme admin tarafından doğrulandıktan sonra yapılır.
+19. Kredi paketleri sonradan değiştirilebilir.
+20. Eski kredi işlemleri paket fiyatı değiştiğinde etkilenmez.
+
+Ücretsiz 10 işletme, ücretli listenin içerisindeki örneklerdir.
+
+Dolayısıyla 2.450 işletmelik bir listenin tamamını açmanın bedeli 2.450 kredidir. Önceden ücretsiz gösterilen 10 işletme için ikinci bir indirim yapılmaz.
+
+Bu kural kullanıcı arayüzünde açıkça belirtilmeli.
+
+---
+
+# 19. TESTLER
+
+Özellikle aşağıdaki akışları test et:
+
+- Yeni kullanıcı kaydı
+- E-posta doğrulaması olmadan giriş
+- Onboarding tamamlama
+- Onboarding yarıda bırakıp geri dönme
+- İlk liste talebi
+- Onboarding sırasında liste oluşturmadan geçme
+- Üç aktif talep sınırı
+- Dördüncü talebin backend'de reddedilmesi
+- Sıfır krediyle talep oluşturma
+- Liste hazır olduğunda detayları görüntüleme
+- Ücretsiz 10 örnek veriye erişim
+- Ücretsiz örnek CSV indirme
+- Yetersiz kredi durumunda uyarı
+- Yeterli krediyle liste açma
+- Kredi düşme ve hareket oluşturma
+- Aynı listeyi tekrar indirme
+- Eş zamanlı unlock istekleri
+- Admin kredi yükleme
+- Mükerrer Shopier sipariş referansı
+- Başka kullanıcının listesine yetkisiz erişim
+- Tam liste indirme endpoint'i yetkilendirmesi
+- Mobil görünüm
+- Refresh sonrası oturum ve onboarding durumunun korunması
+
+Mevcut test altyapısını kullan.
+
+Gerekli birim ve entegrasyon testlerini ekle.
+
+---
+
+# 20. UYGULAMA SIRASI
+
+İşi şu sırayla gerçekleştir:
+
+FAZ 1:
+Mevcut projeyi analiz et. Auth, dashboard, admin, scraping ve veritabanı sistemlerini incele.
+
+FAZ 2:
+Gerekli veritabanı migration'larını ve RLS politikalarını oluştur.
+
+FAZ 3:
+Supabase Auth ile kayıt ve onboarding akışını geliştir.
+
+FAZ 4:
+Müşteri paneli layout ve dashboard ekranını oluştur.
+
+FAZ 5:
+Liste talep ekranını ve listelerim sayfasını geliştir.
+
+FAZ 6:
+Liste detay sayfasını, istatistikleri ve ücretsiz 10 veri önizlemesini geliştir.
+
+FAZ 7:
+Kredi sistemi, liste unlock mantığı ve kredi geçmişini geliştir.
+
+FAZ 8:
+Shopier paket yönlendirmelerini ve admin manuel kredi yükleme alanını entegre et.
+
+FAZ 9:
+Hesap ayarları, bildirim tercihleri ve indirme fonksiyonlarını tamamla.
+
+FAZ 10:
+Güvenlik testleri, hata kontrolleri, responsive iyileştirmeler ve genel kalite kontrolünü yap.
+
+---
+
+# 21. ÇALIŞMA KURALLARI
+
+ÖNEMLİ:
+
+Bu bir tasarım mockup projesi değildir.
+
+Gerçek, çalışan müşteri paneli geliştiriyoruz.
+
+Sadece component üretip bırakma.
+
+Frontend, backend ve database katmanlarını birlikte tamamla.
+
+Her sayfanın gerçek veriyle çalışmasını sağla.
+
+Mevcut proje mimarisine uy.
+
+Var olan çalışan fonksiyonları bozma.
+
+Mevcut admin panelinin yetkilerini koru.
+
+Mevcut authentication sistemini gereksiz yere baştan yazma.
+
+Kod kalitesine önem ver.
+
+Tekrarlanan kodlardan kaçın.
+
+TypeScript tiplerini doğru tanımla.
+
+Hata yönetimini düzgün yap.
+
+Gizli anahtarları istemciye çıkarma.
+
+SQL migration'larını güvenli şekilde hazırla.
+
+Veritabanındaki mevcut kullanıcı veya işletme verilerini silme.
+
+Gerekli ortam değişkenlerini `.env.example` içerisinde belgele; gerçek gizli anahtarları değiştirme.
+
+Harici panelde yapılması gereken manuel kurulum varsa net şekilde listele.
+
+## BEKLENEN SONUÇ
+
+Çalışma tamamlandığında:
+
+- Kullanıcı kayıt olabilmeli.
+- Onboarding tamamlayabilmeli.
+- İlk listesini oluşturabilmeli.
+- Dashboard'a erişebilmeli.
+- Yeni liste talepleri oluşturabilmeli.
+- Listelerinin durumunu takip edebilmeli.
+- Hazır listelerin istatistiklerini görebilmeli.
+- 10 örnek işletmeyi ücretsiz indirebilmeli.
+- Kredi paketlerini görüntüleyebilmeli.
+- Shopier üzerinden ödeme bağlantısına gidebilmeli.
+- Admin kullanıcıya manuel kredi yükleyebilmeli.
+- Kullanıcı kredisiyle tam listeyi açabilmeli.
+- Listeyi Excel/CSV olarak indirebilmeli.
+- Kredi geçmişini görebilmeli.
+- Hesap bilgilerini düzenleyebilmeli.
+
+Tüm bu işlemler gerçek Supabase veritabanına bağlı çalışmalı.
+
+**Başlamadan önce mevcut projeyi incele, mimariyi kısaca özetle ve belirlediğin uyarlama kararlarını açıkla. Daha sonra implementasyona geç.**
+
+Gerçekleştirilemeyen dış servis entegrasyonlarını çalışıyormuş gibi gösterme. Bunları açıkça raporla.
+
+İş bitiminde:
+
+1. Tamamlanan özellikleri listele.
+2. Oluşturulan migration'ları belirt.
+3. Eklenen veya güncellenen route'ları belirt.
+4. Çalıştırılan testleri ve sonuçlarını açıkla.
+5. Manuel yapılandırma gerektiren noktaları yaz.
+6. Eksik kalan bir özellik varsa dürüstçe belirt.
+
+Hedefimiz gerçek müşterilerin kullanabileceği, güvenli, hızlı ve satış dönüşümüne odaklı bir Veri Burada müşteri paneli geliştirmek.

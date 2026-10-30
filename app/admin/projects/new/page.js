@@ -23,6 +23,7 @@ import {
   cx,
   inputClass,
 } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 const PREVIEW_LIMIT = 200;
 const WARN_THRESHOLD = 5000;
@@ -40,6 +41,7 @@ export default function NewProjectPage() {
   const [keywordsText, setKeywordsText] = useState("");
   const [excludeMerkez, setExcludeMerkez] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [excluded, setExcluded] = useState(() => new Set());
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -62,10 +64,15 @@ export default function NewProjectPage() {
     return parseKeywords(keyword);
   }, [keywordsText, keyword]);
 
-  const terms = useMemo(
+  const generatedTerms = useMemo(
     () => generateSearchTerms(keywords, selected, { excludeMerkez }),
     [keywords, selected, excludeMerkez],
   );
+
+  const terms = useMemo(() => {
+    if (excluded.size === 0) return generatedTerms;
+    return generatedTerms.filter((t) => !excluded.has(t));
+  }, [generatedTerms, excluded]);
 
   const districtCount = useMemo(
     () => countDistricts(selected, { excludeMerkez }),
@@ -92,6 +99,18 @@ export default function NewProjectPage() {
 
   function clearSelection() {
     setSelected([]);
+  }
+
+  function excludeTerm(term) {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      next.add(term);
+      return next;
+    });
+  }
+
+  function restoreExcluded() {
+    setExcluded(new Set());
   }
 
   const visibleTerms = terms.slice(0, showAll ? 2000 : PREVIEW_LIMIT);
@@ -205,12 +224,12 @@ export default function NewProjectPage() {
                 onChange={(e) => setKeywordsText(e.target.value)}
                 placeholder={"kuaför\nberber\ngüzellik salonu"}
               />
-              <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+              <label className="flex items-center gap-2 text-sm text-ink">
                 <input
                   type="checkbox"
                   checked={excludeMerkez}
                   onChange={(e) => setExcludeMerkez(e.target.checked)}
-                  className="h-4 w-4 accent-green-600"
+                  className="h-4 w-4 accent-green"
                 />
                 &quot;Merkez&quot; ilçelerini hariç tut
               </label>
@@ -248,22 +267,22 @@ export default function NewProjectPage() {
                       className={cx(
                         "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors",
                         on
-                          ? "border-green-600 bg-green-600/10 text-green-800 dark:text-green-300"
-                          : "border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800/50",
+                          ? "border-green bg-pale text-forest"
+                          : "border-border text-ink hover:bg-pale",
                       )}
                     >
                       <input
                         type="checkbox"
                         checked={on}
                         onChange={() => toggleProvince(p.id)}
-                        className="h-4 w-4 accent-green-600"
+                        className="h-4 w-4 accent-green"
                       />
                       <span className="truncate">{p.name}</span>
                     </label>
                   );
                 })}
                 {filteredProvinces.length === 0 ? (
-                  <p className="col-span-full py-4 text-center text-sm text-zinc-500">
+                  <p className="col-span-full py-4 text-center text-sm text-muted">
                     İl bulunamadı
                   </p>
                 ) : null}
@@ -281,40 +300,65 @@ export default function NewProjectPage() {
             />
             <div className="p-4">
               <div className="mb-3 flex items-baseline justify-between">
-                <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                <span className="text-sm text-muted">
                   Toplam arama terimi
                 </span>
                 <span
                   className={cx(
                     "text-2xl font-semibold tabular-nums",
                     terms.length > WARN_THRESHOLD
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-green-600 dark:text-green-400",
+                      ? "text-mint"
+                      : "text-green",
                   )}
                 >
                   {formatNumber(terms.length)}
                 </span>
               </div>
+              {excluded.size > 0 ? (
+                <div className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-pale px-3 py-2 text-xs text-muted">
+                  <span>{formatNumber(excluded.size)} terim listeden çıkarıldı</span>
+                  <button
+                    type="button"
+                    onClick={restoreExcluded}
+                    className="font-medium text-forest hover:underline"
+                  >
+                    Geri al
+                  </button>
+                </div>
+              ) : null}
               {terms.length > WARN_THRESHOLD ? (
-                <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                <p className="mb-3 rounded-lg bg-pale px-3 py-2 text-xs text-forest">
                   Çok fazla arama terimi. Daha az il veya anahtar kelime seçmeyi
                   düşünün.
                 </p>
               ) : null}
 
               {terms.length === 0 ? (
-                <p className="py-6 text-center text-sm text-zinc-500">
-                  İl seçin ve anahtar kelime girin; terimler burada görünecek.
+                <p className="py-6 text-center text-sm text-muted">
+                  {generatedTerms.length > 0
+                    ? "Tüm terimler çıkarıldı. Geri al ile geri getirebilirsiniz."
+                    : "İl seçin ve anahtar kelime girin; terimler burada görünecek."}
                 </p>
               ) : (
                 <>
-                  <ul className="thin-scroll max-h-96 divide-y divide-zinc-100 overflow-y-auto rounded-lg border border-zinc-200 text-sm dark:divide-zinc-800 dark:border-zinc-800">
+                  <ul className="thin-scroll max-h-96 divide-y divide-border overflow-y-auto rounded-lg border border-border text-sm">
                     {visibleTerms.map((t, i) => (
                       <li
                         key={`${t}-${i}`}
-                        className="px-3 py-1.5 text-zinc-700 dark:text-zinc-300"
+                        className="group flex items-center gap-2 px-3 py-1.5 text-ink"
                       >
-                        {t}
+                        <span className="min-w-0 flex-1 truncate" title={t}>
+                          {t}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => excludeTerm(t)}
+                          title="Listeden çıkar"
+                          aria-label={`${t} terimini listeden çıkar`}
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                        >
+                          <Icon name="close" className="h-3.5 w-3.5" />
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -322,7 +366,7 @@ export default function NewProjectPage() {
                     <button
                       type="button"
                       onClick={() => setShowAll((v) => !v)}
-                      className="mt-2 text-xs font-medium text-green-700 hover:underline dark:text-green-400"
+                      className="mt-2 text-xs font-medium text-forest hover:underline"
                     >
                       {showAll
                         ? "İlk 200'ü göster"

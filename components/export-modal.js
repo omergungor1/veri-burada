@@ -82,9 +82,9 @@ export default function ExportModal({ open, onClose, project, jobIds }) {
       }
     >
       <ErrorBox message={error} />
-      <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mb-3 text-sm text-muted">
         Her işletme için tek satır oluşturulur. Arama terimleri{" "}
-        <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+        <code className="rounded bg-pale px-1">
           {" | "}
         </code>{" "}
         ile birleştirilir.
@@ -96,7 +96,7 @@ export default function ExportModal({ open, onClose, project, jobIds }) {
         <Button size="sm" onClick={() => setAll(false)} disabled={busy}>
           Temizle
         </Button>
-        <span className="ml-auto self-center text-xs text-zinc-500">
+        <span className="ml-auto self-center text-xs text-muted">
           {selected.size}/{CSV_COLUMNS.length} sütun
         </span>
       </div>
@@ -104,11 +104,11 @@ export default function ExportModal({ open, onClose, project, jobIds }) {
         {CSV_COLUMNS.map((c) => (
           <label
             key={c.key}
-            className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
+            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm text-ink hover:bg-pale"
           >
             <input
               type="checkbox"
-              className="h-4 w-4 accent-green-600"
+              className="h-4 w-4 accent-green"
               checked={selected.has(c.key)}
               onChange={() => toggle(c.key)}
               disabled={busy}

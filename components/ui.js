@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { formatNumber, statusInfo } from "@/lib/admin/format";
 
@@ -15,7 +16,7 @@ export function Card({ className, children, ...rest }) {
   return (
     <div
       className={cx(
-        "rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900",
+        "min-w-0 rounded-xl border border-border bg-white shadow-sm",
         className,
       )}
       {...rest}
@@ -29,16 +30,14 @@ export function CardHeader({ title, subtitle, action, className }) {
   return (
     <div
       className={cx(
-        "flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800",
+        "flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3",
         className,
       )}
     >
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          {title}
-        </h2>
+        <h2 className="text-sm font-semibold text-ink">{title}</h2>
         {subtitle ? (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">{subtitle}</p>
+          <p className="text-xs text-muted">{subtitle}</p>
         ) : null}
       </div>
       {action}
@@ -46,20 +45,23 @@ export function CardHeader({ title, subtitle, action, className }) {
   );
 }
 
-export function PageHeader({ title, description, actions }) {
+export function PageHeader({ title, description, actions, leading }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50">
-          {title}
-        </h1>
-        {description ? (
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {description}
-          </p>
-        ) : null}
+    <div className="mb-5 flex shrink-0 items-start gap-3 sm:justify-between">
+      <div className="flex min-w-0 items-start gap-2">
+        {leading ? <div className="mt-0.5 shrink-0">{leading}</div> : null}
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+            {title}
+          </h1>
+          {description ? (
+            <p className="mt-1 text-sm text-muted">{description}</p>
+          ) : null}
+        </div>
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex flex-wrap gap-2">{actions}</div>
+      ) : null}
     </div>
   );
 }
@@ -68,18 +70,18 @@ export function PageHeader({ title, description, actions }) {
 
 const BUTTON_VARIANTS = {
   primary:
-    "bg-green-600 text-white hover:bg-green-700 focus-visible:outline-green-600 disabled:bg-green-600/50",
+    "bg-green text-white hover:bg-green-hover focus-visible:outline-green disabled:bg-green/50",
   secondary:
-    "border border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800",
+    "border border-border bg-white text-ink hover:bg-pale",
   danger:
-    "border border-red-300 bg-white text-red-700 hover:bg-red-50 dark:border-red-900 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-950/40",
-  ghost:
-    "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+    "border border-red-300 bg-white text-red-700 hover:bg-red-50",
+  ghost: "text-muted hover:bg-pale",
 };
 
 const BUTTON_SIZES = {
   sm: "px-2.5 py-1.5 text-xs",
   md: "px-3.5 py-2 text-sm",
+  lg: "px-8 py-3.5 text-base",
 };
 
 export function buttonClass(variant = "secondary", size = "md", className) {
@@ -119,21 +121,19 @@ export function ButtonLink({
 /* ------------------------------ Form -------------------------------- */
 
 export const inputClass =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500";
+  "w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-green focus:outline-none focus:ring-2 focus:ring-green/20";
 
 export function Field({ label, hint, children, htmlFor }) {
   return (
     <div>
       <label
         htmlFor={htmlFor}
-        className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        className="mb-1 block text-sm font-medium text-ink"
       >
         {label}
       </label>
       {children}
-      {hint ? (
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
-      ) : null}
+      {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
     </div>
   );
 }
@@ -141,7 +141,7 @@ export function Field({ label, hint, children, htmlFor }) {
 export function SearchInput({ value, onChange, placeholder, className }) {
   return (
     <div className={cx("relative", className)}>
-      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-zinc-400">
+      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted">
         <Icon name="search" className="h-4 w-4" />
       </span>
       <input
@@ -158,13 +158,11 @@ export function SearchInput({ value, onChange, placeholder, className }) {
 /* ------------------------------ Rozetler ----------------------------- */
 
 const TONES = {
-  green:
-    "bg-green-100 text-green-800 ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30",
-  amber:
-    "bg-amber-100 text-amber-800 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/30",
-  sky: "bg-sky-100 text-sky-800 ring-sky-600/20 dark:bg-sky-500/10 dark:text-sky-400 dark:ring-sky-500/30",
-  red: "bg-red-100 text-red-800 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/30",
-  zinc: "bg-zinc-100 text-zinc-700 ring-zinc-500/20 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-600/40",
+  green: "bg-pale text-forest ring-green/20",
+  amber: "bg-pale text-forest ring-mint/25",
+  sky: "bg-pale text-forest ring-mint/25",
+  red: "bg-red-50 text-red-800 ring-red-600/15",
+  zinc: "bg-pale text-muted ring-border",
 };
 
 export function Badge({ tone = "zinc", children, className }) {
@@ -191,7 +189,7 @@ export function StatusBadge({ status, label }) {
 export function Spinner({ className = "h-5 w-5" }) {
   return (
     <svg
-      className={cx("animate-spin text-green-600", className)}
+      className={cx("animate-spin text-green", className)}
       viewBox="0 0 24 24"
       fill="none"
       aria-label="Yükleniyor"
@@ -217,7 +215,7 @@ export function Spinner({ className = "h-5 w-5" }) {
 
 export function LoadingBlock({ label = "Yükleniyor..." }) {
   return (
-    <div className="flex items-center justify-center gap-2 py-12 text-sm text-zinc-500 dark:text-zinc-400">
+    <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted">
       <Spinner />
       {label}
     </div>
@@ -227,13 +225,9 @@ export function LoadingBlock({ label = "Yükleniyor..." }) {
 export function EmptyState({ title = "Kayıt bulunamadı", description, action }) {
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
-      <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-        {title}
-      </p>
+      <p className="text-sm font-medium text-ink">{title}</p>
       {description ? (
-        <p className="max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
-          {description}
-        </p>
+        <p className="max-w-sm text-sm text-muted">{description}</p>
       ) : null}
       {action}
     </div>
@@ -245,7 +239,7 @@ export function ErrorBox({ message, onRetry }) {
   return (
     <div
       role="alert"
-      className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+      className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
     >
       <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
       <span className="min-w-0 flex-1 break-words">{message}</span>
@@ -265,23 +259,21 @@ export function ErrorBox({ message, onRetry }) {
 export function StatCard({ label, value, hint, tone = "default" }) {
   const toneClass =
     tone === "green"
-      ? "text-green-600 dark:text-green-400"
+      ? "text-green"
       : tone === "amber"
-        ? "text-amber-600 dark:text-amber-400"
+        ? "text-mint"
         : tone === "red"
-          ? "text-red-600 dark:text-red-400"
-          : "text-zinc-900 dark:text-zinc-50";
+          ? "text-red-600"
+          : "text-ink";
   return (
     <Card className="p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
         {label}
       </p>
       <p className={cx("mt-1 text-2xl font-semibold tabular-nums", toneClass)}>
         {typeof value === "number" ? formatNumber(value) : (value ?? "-")}
       </p>
-      {hint ? (
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
-      ) : null}
+      {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
     </Card>
   );
 }
@@ -290,7 +282,7 @@ export function ProgressBar({ value, className }) {
   return (
     <div
       className={cx(
-        "h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800",
+        "h-2 w-full overflow-hidden rounded-full bg-border",
         className,
       )}
       role="progressbar"
@@ -299,7 +291,7 @@ export function ProgressBar({ value, className }) {
       aria-valuemax={100}
     >
       <div
-        className="h-full rounded-full bg-green-600 transition-all"
+        className="h-full rounded-full bg-green transition-all"
         style={{ width: `${value}%` }}
       />
     </div>
@@ -318,22 +310,22 @@ export function PhaseProgress({
   const done = completed + failed;
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
   return (
-    <div className={cx("min-w-[148px]", className)}>
+    <div className={cx("min-w-0", className)}>
       <div className="mb-0.5 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted">
           {label}
         </span>
-        <span className="text-[11px] tabular-nums text-zinc-600 dark:text-zinc-300">
+        <span className="text-[11px] tabular-nums text-muted">
           {total > 0 ? `%${pct}` : "—"}
         </span>
       </div>
       <ProgressBar value={total > 0 ? pct : 0} />
-      <p className="mt-0.5 text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+      <p className="mt-0.5 text-[11px] tabular-nums text-muted">
         {total > 0 ? (
           <>
             {formatNumber(completed)}/{formatNumber(total)} ok
             {failed > 0 ? (
-              <span className="text-red-600 dark:text-red-400">
+              <span className="text-red-600">
                 {" "}
                 · {formatNumber(failed)} hata
               </span>
@@ -349,11 +341,12 @@ export function PhaseProgress({
 
 /* ------------------------------- Tablo ------------------------------- */
 
-/** Yatay kaydırılabilir tablo sarmalayıcısı. */
-export function TableWrap({ children }) {
+export function TableWrap({ children, className, tableClassName }) {
   return (
-    <div className="thin-scroll overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left text-sm">{children}</table>
+    <div className={cx("thin-scroll overflow-x-auto", className)}>
+      <table className={cx("w-full text-left text-sm", tableClassName)}>
+        {children}
+      </table>
     </div>
   );
 }
@@ -362,7 +355,7 @@ export function Th({ children, className }) {
   return (
     <th
       className={cx(
-        "whitespace-nowrap bg-zinc-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:bg-zinc-900/60 dark:text-zinc-400",
+        "whitespace-nowrap bg-pale px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted",
         className,
       )}
     >
@@ -375,7 +368,7 @@ export function Td({ children, className, ...rest }) {
   return (
     <td
       className={cx(
-        "border-t border-zinc-100 px-4 py-2.5 align-middle text-zinc-700 dark:border-zinc-800 dark:text-zinc-300",
+        "border-t border-border px-4 py-2.5 align-middle text-ink",
         className,
       )}
       {...rest}
@@ -390,8 +383,8 @@ export function Pagination({ page, pageSize, count, onChange }) {
   const from = count === 0 ? 0 : page * pageSize + 1;
   const to = Math.min(count, (page + 1) * pageSize);
   return (
-    <div className="flex flex-col items-center justify-between gap-2 border-t border-zinc-200 px-4 py-3 text-sm sm:flex-row dark:border-zinc-800">
-      <span className="text-zinc-500 dark:text-zinc-400">
+    <div className="flex flex-col items-center justify-between gap-2 border-t border-border px-4 py-3 text-sm sm:flex-row">
+      <span className="text-muted">
         {formatNumber(from)}–{formatNumber(to)} / {formatNumber(count)}
       </span>
       <div className="flex items-center gap-2">
@@ -403,7 +396,7 @@ export function Pagination({ page, pageSize, count, onChange }) {
           <Icon name="chevronLeft" className="h-4 w-4" />
           Önceki
         </Button>
-        <span className="min-w-16 text-center text-zinc-600 dark:text-zinc-300">
+        <span className="min-w-16 text-center text-muted">
           {page + 1} / {pages}
         </span>
         <Button
@@ -421,7 +414,7 @@ export function Pagination({ page, pageSize, count, onChange }) {
 
 export function Tabs({ tabs, active, onChange, counts }) {
   return (
-    <div className="thin-scroll -mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+    <div className="flex max-w-full flex-wrap gap-1">
       {tabs.map((t) => {
         const isActive = t.key === active;
         return (
@@ -432,8 +425,8 @@ export function Tabs({ tabs, active, onChange, counts }) {
             className={cx(
               "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
               isActive
-                ? "bg-green-600 text-white"
-                : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                ? "bg-green text-white"
+                : "text-muted hover:bg-pale",
             )}
           >
             {t.label}
@@ -441,9 +434,7 @@ export function Tabs({ tabs, active, onChange, counts }) {
               <span
                 className={cx(
                   "rounded-full px-1.5 text-xs tabular-nums",
-                  isActive
-                    ? "bg-white/20"
-                    : "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+                  isActive ? "bg-white/20" : "bg-border text-muted",
                 )}
               >
                 {formatNumber(counts[t.key])}
@@ -457,6 +448,32 @@ export function Tabs({ tabs, active, onChange, counts }) {
 }
 
 /* ------------------------------- Modal ------------------------------- */
+
+export function Toast({ message, tone = "green", onClose }) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!message) return undefined;
+    const id = setTimeout(() => onCloseRef.current?.(), 4000);
+    return () => clearTimeout(id);
+  }, [message]);
+
+  if (!message || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      role="status"
+      className={cx(
+        "fixed bottom-5 left-1/2 z-[70] max-w-[min(90vw,24rem)] -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg",
+        tone === "red" ? "bg-red-700 text-white" : "bg-forest text-white",
+      )}
+    >
+      {message}
+    </div>,
+    document.body,
+  );
+}
 
 export function Modal({ open, onClose, title, children, footer }) {
   useEffect(() => {
@@ -477,7 +494,7 @@ export function Modal({ open, onClose, title, children, footer }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
@@ -486,16 +503,14 @@ export function Modal({ open, onClose, title, children, footer }) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex max-h-[90dvh] w-full flex-col rounded-t-2xl border border-zinc-200 bg-white shadow-xl sm:max-w-lg sm:rounded-2xl dark:border-zinc-800 dark:bg-zinc-900"
+        className="flex max-h-[90dvh] w-full flex-col rounded-t-2xl border border-border bg-white shadow-xl sm:max-w-lg sm:rounded-2xl"
       >
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-            {title}
-          </h3>
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h3 className="text-base font-semibold text-ink">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="rounded-md p-1 text-muted hover:bg-pale"
             aria-label="Kapat"
           >
             <Icon name="close" className="h-5 w-5" />
@@ -503,7 +518,7 @@ export function Modal({ open, onClose, title, children, footer }) {
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
         {footer ? (
-          <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3">
             {footer}
           </div>
         ) : null}
@@ -512,14 +527,13 @@ export function Modal({ open, onClose, title, children, footer }) {
   );
 }
 
-/** Anahtar-değer ayrıntı satırı */
 export function DetailRow({ label, children }) {
   return (
     <div className="grid grid-cols-1 gap-0.5 py-2.5 sm:grid-cols-3 sm:gap-4">
-      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted">
         {label}
       </dt>
-      <dd className="min-w-0 break-words text-sm text-zinc-900 sm:col-span-2 dark:text-zinc-100">
+      <dd className="min-w-0 break-words text-sm text-ink sm:col-span-2">
         {children ?? "-"}
       </dd>
     </div>
@@ -562,7 +576,7 @@ export function ActionMenu({ items = [], align = "right", label = "İşlemler" }
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-pale hover:text-ink"
       >
         <Icon name="more" className="h-4 w-4" />
       </button>
@@ -570,7 +584,7 @@ export function ActionMenu({ items = [], align = "right", label = "İşlemler" }
         <div
           role="menu"
           className={cx(
-            "absolute z-30 mt-1 min-w-[200px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900",
+            "absolute z-30 mt-1 min-w-[200px] rounded-lg border border-border bg-white py-1 shadow-lg",
             align === "right" ? "right-0" : "left-0",
           )}
         >
@@ -589,11 +603,13 @@ export function ActionMenu({ items = [], align = "right", label = "İşlemler" }
               className={cx(
                 "flex w-full items-center gap-2 px-3 py-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-40",
                 item.tone === "danger"
-                  ? "text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
-                  : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800",
+                  ? "text-red-700 hover:bg-red-50"
+                  : "text-ink hover:bg-pale",
               )}
             >
-              {item.icon ? <Icon name={item.icon} className="h-4 w-4 shrink-0" /> : null}
+              {item.icon ? (
+                <Icon name={item.icon} className="h-4 w-4 shrink-0" />
+              ) : null}
               <span>{item.label}</span>
             </button>
           ))}

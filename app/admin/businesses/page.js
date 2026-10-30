@@ -63,7 +63,7 @@ export default function BusinessesPage() {
       />
 
       <Card>
-        <div className="flex flex-col gap-3 border-b border-zinc-200 p-3 lg:flex-row lg:items-center lg:justify-between dark:border-zinc-800">
+        <div className="flex flex-col gap-3 border-b border-border p-3 lg:flex-row lg:items-center lg:justify-between">
           <SearchInput
             value={search}
             onChange={(v) => {
@@ -95,15 +95,15 @@ export default function BusinessesPage() {
         {data && data.rows.length > 0 ? (
           <>
             {/* Mobil kartlar */}
-            <ul className="divide-y divide-zinc-100 md:hidden dark:divide-zinc-800">
+            <ul className="divide-y divide-border md:hidden">
               {data.rows.map((b) => (
                 <li key={b.id}>
                   <Link
                     href={`/admin/businesses/${b.id}`}
-                    className="block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    className="block px-4 py-3 hover:bg-pale"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="min-w-0 break-words font-medium text-zinc-900 dark:text-zinc-100">
+                      <span className="min-w-0 break-words font-medium text-ink">
                         {b.name || "(isimsiz)"}
                       </span>
                       <StatusBadge
@@ -111,11 +111,11 @@ export default function BusinessesPage() {
                         label={detailLabel(b.detail_status)}
                       />
                     </div>
-                    <p className="mt-0.5 text-xs text-zinc-500">
+                    <p className="mt-0.5 text-xs text-muted">
                       {[b.district, b.city].filter(Boolean).join(", ") || "-"}
                       {b.phone ? ` · ${b.phone}` : ""}
                     </p>
-                    <p className="mt-0.5 truncate font-mono text-xs text-zinc-400">
+                    <p className="mt-0.5 truncate font-mono text-xs text-muted">
                       {b.place_id}
                     </p>
                   </Link>
@@ -140,16 +140,16 @@ export default function BusinessesPage() {
                   {data.rows.map((b) => (
                     <tr
                       key={b.id}
-                      className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                      className="hover:bg-pale"
                     >
                       <Td className="max-w-xs">
                         <Link
                           href={`/admin/businesses/${b.id}`}
-                          className="font-medium text-zinc-900 hover:text-green-700 dark:text-zinc-100 dark:hover:text-green-400"
+                          className="font-medium text-ink hover:text-forest"
                         >
                           {b.name || "(isimsiz)"}
                         </Link>
-                        <p className="truncate font-mono text-xs text-zinc-500">
+                        <p className="truncate font-mono text-xs text-muted">
                           {b.place_id}
                         </p>
                       </Td>
@@ -161,7 +161,7 @@ export default function BusinessesPage() {
                       <Td className="whitespace-nowrap tabular-nums">
                         {b.rating ?? "-"}
                         {b.review_count ? (
-                          <span className="text-xs text-zinc-500">
+                          <span className="text-xs text-muted">
                             {" "}
                             ({formatNumber(b.review_count)})
                           </span>

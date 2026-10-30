@@ -24,7 +24,10 @@ const PATHS = {
   stop: "M7 7h10v10H7z",
   unlock: "M8 11V8a4 4 0 0 1 7.5-2M6 11h12v10H6z",
   reset: "M3 12a9 9 0 1 0 3-6.7M3 4v5h5",
+  user: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   more: "M12 5h.01M12 12h.01M12 19h.01",
+  edit: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z",
+  check: "M5 13l4 4L19 7",
 };
 
 export function Icon({ name, className = "h-5 w-5" }) {

@@ -1,38 +1,67 @@
 @import "tailwindcss";
 
-/* Sınıf tabanlı dark mode (html.dark) */
-@custom-variant dark (&:where(.dark, .dark *));
+:root {
+  color-scheme: light;
+  --color-forest: #0f4c30;
+  --color-green: #198754;
+  --color-green-hover: #157347;
+  --color-mint: #20c997;
+  --color-pale: #eaf7f1;
+  --color-paper: #f8faf8;
+  --color-ink: #142c22;
+  --color-muted: #68786f;
+  --color-border: #dfe8e1;
+}
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-forest: #0f4c30;
+  --color-green: #198754;
+  --color-green-hover: #157347;
+  --color-mint: #20c997;
+  --color-pale: #eaf7f1;
+  --color-paper: #f8faf8;
+  --color-ink: #142c22;
+  --color-muted: #68786f;
+  --color-border: #dfe8e1;
 }
 
 html {
   color-scheme: light;
 }
 
-html.dark {
-  color-scheme: dark;
-}
-
 body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  background: #fafafa;
-  color: #18181b;
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
-html.dark body {
-  background: #09090b;
-  color: #e4e4e7;
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(25, 135, 84, 0.28) transparent;
+  }
 }
 
-/* Yatay kaydırmalı tablolar için ince scrollbar */
-.thin-scroll::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
-.thin-scroll::-webkit-scrollbar-thumb {
-  background: #a1a1aa66;
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(25, 135, 84, 0.22);
   border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(25, 135, 84, 0.45);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
