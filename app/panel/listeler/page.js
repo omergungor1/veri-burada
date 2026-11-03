@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAsyncData } from "@/lib/admin/hooks";
 import { PAGE_SIZE } from "@/lib/admin/format";
@@ -25,6 +24,7 @@ import {
   Tabs,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { ListRequestLink } from "@/components/pending-list-modal";
 
 const TABS = [
   { key: "all", label: "Tümü" },
@@ -121,9 +121,9 @@ export default function ListsPage() {
                   .filter((part) => part && part !== "—")
                   .join(" · ");
                 return (
-                  <Link
+                  <ListRequestLink
                     key={row.id}
-                    href={`/panel/listeler/${row.id}`}
+                    row={row}
                     className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-white px-3 py-3 shadow-sm hover:border-muted hover:bg-pale"
                   >
                     <div className="min-w-0 flex-1">
@@ -146,7 +146,7 @@ export default function ListsPage() {
                         className="h-4 w-4 text-muted"
                       />
                     </div>
-                  </Link>
+                  </ListRequestLink>
                 );
               })}
             </div>

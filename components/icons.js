@@ -28,6 +28,8 @@ const PATHS = {
   more: "M12 5h.01M12 12h.01M12 19h.01",
   edit: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z",
   check: "M5 13l4 4L19 7",
+  bell: "M6 9a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9M10 21a2 2 0 0 0 4 0",
+  mail: "M4 6h16v12H4zM4 7l8 6 8-6",
 };
 
 export function Icon({ name, className = "h-5 w-5" }) {

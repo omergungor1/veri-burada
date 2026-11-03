@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import geo from "@/data/turkiye-il-ilce";
 import { REQUEST_TYPE_LABELS } from "@/lib/panel/format";
 import { Button, Card, Field, cx, inputClass } from "@/components/ui";
@@ -72,6 +72,7 @@ function districtLabels(regions) {
 
 export default function ListRequestForm({
   onSubmit,
+  onStepChange,
   submitting = false,
   submitLabel = "Liste Talebi Oluştur",
   extraActions,
@@ -88,6 +89,10 @@ export default function ListRequestForm({
   const [keywords, setKeywords] = useState([]);
   const [draft, setDraft] = useState("");
   const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [onStepChange, step]);
 
   const cityNames = useMemo(
     () => (allTurkey ? PROVINCES.map((p) => p.name) : regions.map((r) => r.provinceName)),
@@ -290,22 +295,24 @@ export default function ListRequestForm({
         !compact && "pb-[calc(5.75rem+env(safe-area-inset-bottom))] md:pb-0",
       )}
     >
-      <div>
-        <div className="flex gap-1">
-          {STEPS.map((s) => (
-            <div
-              key={s.id}
-              className={cx(
-                "h-1.5 flex-1 rounded-full",
-                step >= s.id ? "bg-green" : "bg-border",
-              )}
-            />
-          ))}
+      {compact ? null : (
+        <div>
+          <div className="flex gap-1">
+            {STEPS.map((s) => (
+              <div
+                key={s.id}
+                className={cx(
+                  "h-1.5 flex-1 rounded-full",
+                  step >= s.id ? "bg-green" : "bg-border",
+                )}
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-xs font-medium text-muted">
+            Adım {step} / {STEPS.length} · {STEPS[step - 1].label}
+          </p>
         </div>
-        <p className="mt-2 text-xs font-medium text-muted">
-          Adım {step} / {STEPS.length} · {STEPS[step - 1].label}
-        </p>
-      </div>
+      )}
 
       {formError ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -629,7 +636,7 @@ export default function ListRequestForm({
           ) : null}
           {primaryButton}
         </div>
-        {extraActions ? (
+        {extraActions && step === 1 ? (
           <div className="mx-auto flex w-full max-w-md justify-center">
             {extraActions}
           </div>

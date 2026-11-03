@@ -8,6 +8,7 @@ import { LogoMark, LogoWide } from "@/components/logo";
 import { createClient } from "@/lib/supabase/client";
 import { cx } from "@/components/ui";
 import { formatNumber } from "@/lib/admin/format";
+import NotificationBell from "@/components/notification-bell";
 
 export const ADMIN_NAV = [
   { href: "/admin", label: "Dashboard", icon: "dashboard", exact: true },
@@ -31,6 +32,7 @@ export const CUSTOMER_NAV = [
   { href: "/panel/listeler/yeni", label: "Yeni Liste", icon: "plus" },
   { href: "/panel/krediler", label: "Kredilerim", icon: "unlock" },
   { href: "/panel/hesap", label: "Hesabım", icon: "user" },
+  { href: "/panel/ulasin", label: "Bize ulaşın", icon: "mail" },
 ];
 
 function NavLinks({ pathname, onNavigate, collapsed, nav }) {
@@ -262,6 +264,7 @@ export default function AppShell({
   collapseKey = "vb_admin_sidebar_collapsed",
   creditBalance,
   creditHref,
+  showNotifications = false,
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -389,15 +392,18 @@ export default function AppShell({
               <span className="sr-only">{brandSubtitle}</span>
             </span>
           </div>
-          <div className="lg:hidden">
-            <AccountMenu
-              variant="header"
-              email={email}
-              onLogout={logout}
-              loggingOut={loggingOut}
-              creditBalance={creditBalance}
-              creditHref={creditHref}
-            />
+          <div className="flex items-center gap-1">
+            {showNotifications ? <NotificationBell /> : null}
+            <div className="lg:hidden">
+              <AccountMenu
+                variant="header"
+                email={email}
+                onLogout={logout}
+                loggingOut={loggingOut}
+                creditBalance={creditBalance}
+                creditHref={creditHref}
+              />
+            </div>
           </div>
         </header>
 

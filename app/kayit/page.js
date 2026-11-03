@@ -15,7 +15,6 @@ import {
 import { AuthCard, AuthPage, StepTrack } from "@/components/auth-card";
 import ListRequestForm from "@/components/list-request-form";
 import {
-  MONTHLY_NEEDS,
   USAGE_PURPOSES,
   USER_TYPES,
   firstName,
@@ -26,7 +25,49 @@ import {
 import { createListRequest, saveOnboarding } from "@/lib/panel/api";
 import { errorMessage } from "@/lib/admin/format";
 
-const STEP_LABELS = ["Hesap", "Sizi tanıyalım", "İlk liste", "Hoş geldin"];
+const STEP_LABELS = [
+  "Kullanım amacı",
+  "Sizi tanımlayan",
+  "Liste adı",
+  "Ürün",
+  "Bölge",
+  "Sektör",
+  "Özet",
+  "Hoş geldin",
+];
+
+function visibleStep(step, listPart) {
+  if (step <= 3) return step - 1;
+  if (step === 4) return 2 + listPart;
+  return STEP_LABELS.length;
+}
+
+function resumeOnboardingStep(profile, answers) {
+  if (profile?.onboarding_completed) return 5;
+  const stored = Number(profile?.onboarding_step || 2);
+  const hasType = Boolean(answers?.user_type);
+  if (stored >= 4) return 4;
+  if (stored >= 3 && hasType) return 4;
+  if (stored >= 3) return 3;
+  return 2;
+}
+
+function ChoiceButton({ selected, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "w-full rounded-xl border p-4 text-left text-sm transition-colors",
+        selected
+          ? "border-green bg-pale ring-2 ring-green"
+          : "border-border bg-white hover:bg-pale",
+      )}
+    >
+      <p className="font-semibold text-ink">{children}</p>
+    </button>
+  );
+}
 
 export default function KayitPage() {
   const router = useRouter();
@@ -44,8 +85,7 @@ export default function KayitPage() {
   const [password, setPassword] = useState("");
   const [purposes, setPurposes] = useState([]);
   const [userType, setUserType] = useState("");
-  const [monthlyNeed, setMonthlyNeed] = useState("");
-  const [targetDesc, setTargetDesc] = useState("");
+  const [listPart, setListPart] = useState(1);
 
   const phone = phoneNumber.trim() ? trMobileDigits(phoneNumber) : "";
 
@@ -74,13 +114,7 @@ export default function KayitPage() {
         setPhoneNumber(formatTrMobile(profile?.phone || ""));
         setPurposes(answers?.usage_purposes || []);
         setUserType(answers?.user_type || "");
-        setMonthlyNeed(answers?.monthly_data_need || "");
-        setTargetDesc(answers?.target_business_description || "");
-        const storedStep = Number(profile?.onboarding_step || 2);
-        const next = profile?.onboarding_completed
-          ? 4
-          : Math.min(3, Math.max(2, storedStep));
-        setStep(next);
+        setStep(resumeOnboardingStep(profile, answers));
       }
       setLoading(false);
     }
@@ -145,19 +179,11 @@ export default function KayitPage() {
     setSaving(false);
   }
 
-  async function submitStep2(e) {
+  async function submitPurposes(e) {
     e.preventDefault();
     setError("");
     if (!purposes.length) {
       setError("En az bir kullanım amacı seçin.");
-      return;
-    }
-    if (!userType) {
-      setError("Sizi tanımlayan seçeneği işaretleyin.");
-      return;
-    }
-    if (!monthlyNeed) {
-      setError("Aylık veri ihtiyacınızı seçin.");
       return;
     }
     setSaving(true);
@@ -167,11 +193,30 @@ export default function KayitPage() {
         fullName: fullName.trim(),
         phone,
         usagePurposes: purposes,
-        userType,
-        monthlyNeed,
-        targetDescription: targetDesc.trim() || null,
       });
       setStep(3);
+    } catch (ex) {
+      setError(errorMessage(ex));
+    }
+    setSaving(false);
+  }
+
+  async function submitUserType(e) {
+    e.preventDefault();
+    setError("");
+    if (!userType) {
+      setError("Sizi tanımlayan seçeneği işaretleyin.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveOnboarding(supabase, {
+        step: 4,
+        fullName: fullName.trim(),
+        phone,
+        userType,
+      });
+      setStep(4);
     } catch (ex) {
       setError(errorMessage(ex));
     }
@@ -183,9 +228,9 @@ export default function KayitPage() {
     setSaving(true);
     try {
       await createListRequest(supabase, payload);
-      await saveOnboarding(supabase, { step: 4, complete: true });
+      await saveOnboarding(supabase, { step: 5, complete: true });
       setCreatedList(true);
-      setStep(4);
+      setStep(5);
     } catch (ex) {
       setError(errorMessage(ex));
     }
@@ -196,9 +241,9 @@ export default function KayitPage() {
     setError("");
     setSaving(true);
     try {
-      await saveOnboarding(supabase, { step: 4, complete: true });
+      await saveOnboarding(supabase, { step: 5, complete: true });
       setCreatedList(false);
-      setStep(4);
+      setStep(5);
     } catch (ex) {
       setError(errorMessage(ex));
     }
@@ -304,11 +349,11 @@ export default function KayitPage() {
         </AuthCard>
       ) : (
         <div className="w-full max-w-lg space-y-5">
-          <StepTrack step={step} labels={STEP_LABELS} />
+          <StepTrack step={visibleStep(step, listPart)} labels={STEP_LABELS} />
           <ErrorBox message={error} />
 
           {step === 2 ? (
-            <form onSubmit={submitStep2} className="space-y-5">
+            <form onSubmit={submitPurposes} className="space-y-5">
               <Card className="p-5">
                 <h2 className="text-lg font-semibold text-ink">
                   Sizi biraz tanıyalım
@@ -323,87 +368,16 @@ export default function KayitPage() {
                   Nasıl kullanacaksınız?
                 </h2>
                 <p className="text-sm text-muted">Birden fazla seçebilirsiniz.</p>
-                {USAGE_PURPOSES.map((item) => {
-                  const on = purposes.includes(item);
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => togglePurpose(item)}
-                      className={cx(
-                        "w-full rounded-xl border p-4 text-left text-sm transition-colors",
-                        on
-                          ? "border-green bg-pale ring-2 ring-green"
-                          : "border-border bg-white hover:bg-pale",
-                      )}
-                    >
-                      <p className="font-semibold text-ink">{item}</p>
-                    </button>
-                  );
-                })}
+                {USAGE_PURPOSES.map((item) => (
+                  <ChoiceButton
+                    key={item}
+                    selected={purposes.includes(item)}
+                    onClick={() => togglePurpose(item)}
+                  >
+                    {item}
+                  </ChoiceButton>
+                ))}
               </div>
-
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-ink">
-                  Hangisi sizi tanımlıyor?
-                </h2>
-                {USER_TYPES.map((item) => {
-                  const on = userType === item;
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setUserType(item)}
-                      className={cx(
-                        "w-full rounded-xl border p-4 text-left text-sm transition-colors",
-                        on
-                          ? "border-green bg-pale ring-2 ring-green"
-                          : "border-border bg-white hover:bg-pale",
-                      )}
-                    >
-                      <p className="font-semibold text-ink">{item}</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-ink">
-                  Aylık veri ihtiyacı
-                </h2>
-                {MONTHLY_NEEDS.map((item) => {
-                  const on = monthlyNeed === item;
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setMonthlyNeed(item)}
-                      className={cx(
-                        "w-full rounded-xl border p-4 text-left text-sm transition-colors",
-                        on
-                          ? "border-green bg-pale ring-2 ring-green"
-                          : "border-border bg-white hover:bg-pale",
-                      )}
-                    >
-                      <p className="font-semibold text-ink">{item}</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <Card className="p-5">
-                <Field
-                  label="En çok hangi işletmelere ulaşmak istiyorsunuz? (opsiyonel)"
-                  hint='Örnek: "Türkiye genelindeki kuaförler ve güzellik salonları."'
-                >
-                  <textarea
-                    rows={3}
-                    value={targetDesc}
-                    onChange={(e) => setTargetDesc(e.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-              </Card>
 
               <Button
                 type="submit"
@@ -418,30 +392,64 @@ export default function KayitPage() {
           ) : null}
 
           {step === 3 ? (
-            <div className="space-y-3">
-              <Card className="p-5">
+            <form onSubmit={submitUserType} className="space-y-5">
+              <div className="space-y-2">
                 <h2 className="text-lg font-semibold text-ink">
-                  İlk işletme listeni oluşturalım
+                  Hangisi sizi tanımlıyor?
                 </h2>
-                <p className="mt-1 text-sm text-muted">
-                  Adım adım bölge ve sektörü seç, gerisini bize bırak.
-                </p>
-              </Card>
-              <ListRequestForm
-                compact
-                submitting={saving}
-                submitLabel="İlk Listemi Oluştur"
-                onSubmit={createFirstList}
-                extraActions={
-                  <Button onClick={skipList} disabled={saving}>
-                    Şimdilik atla
-                  </Button>
-                }
-              />
-            </div>
+                {USER_TYPES.map((item) => (
+                  <ChoiceButton
+                    key={item}
+                    selected={userType === item}
+                    onClick={() => setUserType(item)}
+                  >
+                    {item}
+                  </ChoiceButton>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="rounded-xl"
+                  disabled={saving}
+                  onClick={() => {
+                    setError("");
+                    setStep(2);
+                  }}
+                >
+                  Geri
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="flex-1 rounded-xl font-semibold shadow-md shadow-green/25"
+                  disabled={saving}
+                >
+                  {saving ? "Kaydediliyor..." : "Devam et"}
+                </Button>
+              </div>
+            </form>
           ) : null}
 
           {step === 4 ? (
+            <ListRequestForm
+              compact
+              submitting={saving}
+              submitLabel="İlk Listemi Oluştur"
+              onStepChange={setListPart}
+              onSubmit={createFirstList}
+              extraActions={
+                <Button onClick={skipList} disabled={saving}>
+                  Şimdilik atla
+                </Button>
+              }
+            />
+          ) : null}
+
+          {step === 5 ? (
             <Card className="p-5 text-center sm:p-7">
               <h2 className="text-xl font-semibold text-ink">
                 Veri Burada&apos;ya hoş geldin
@@ -463,7 +471,7 @@ export default function KayitPage() {
                 onClick={async () => {
                   setSaving(true);
                   try {
-                    await saveOnboarding(supabase, { step: 4, complete: true });
+                    await saveOnboarding(supabase, { step: 5, complete: true });
                     router.replace("/panel");
                     router.refresh();
                   } catch (ex) {

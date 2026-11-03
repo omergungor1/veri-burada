@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAsyncData } from "@/lib/admin/hooks";
 import { loadDashboard } from "@/lib/panel/api";
@@ -21,6 +20,7 @@ import {
   StatCard,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { ListRequestLink } from "@/components/pending-list-modal";
 
 function shortDate(value) {
   if (!value) return "—";
@@ -116,9 +116,9 @@ export default function PanelDashboardPage() {
                 {recent.map((row) => {
                   const st = listStatus(row.status);
                   return (
-                    <Link
+                    <ListRequestLink
                       key={row.id}
-                      href={`/panel/listeler/${row.id}`}
+                      row={row}
                       title={formatDate(row.created_at)}
                       className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 shadow-sm hover:border-muted hover:bg-pale"
                     >
@@ -140,7 +140,7 @@ export default function PanelDashboardPage() {
                         name="chevronRight"
                         className="h-4 w-4 shrink-0 text-muted"
                       />
-                    </Link>
+                    </ListRequestLink>
                   );
                 })}
               </div>

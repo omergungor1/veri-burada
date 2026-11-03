@@ -139,6 +139,18 @@ export default function ListDetailPage() {
             </span>
           </div>
 
+          {list.status === "queued" ? (
+            <Card className="p-4">
+              <p className="text-sm font-medium text-ink">
+                Liste talebiniz oluşturuldu
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                Sunucuların iş yüküne göre yaklaşık 1 gün sürebilir. İşlem
+                tamamlanınca bildirim ve e-posta alacaksınız.
+              </p>
+            </Card>
+          ) : null}
+
           {list.status === "processing" ? (
             <Card className="mb-4 flex items-center gap-3 p-4 text-sm text-muted">
               <Spinner className="h-5 w-5" />

@@ -38,6 +38,7 @@ export default async function PanelLayout({ children }) {
       collapseKey="vb_customer_sidebar_collapsed"
       creditBalance={wallet?.balance ?? 0}
       creditHref="/panel/krediler"
+      showNotifications
     >
       {children}
     </AppShell>
