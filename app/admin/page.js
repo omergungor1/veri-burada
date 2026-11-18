@@ -24,7 +24,6 @@ export default function DashboardPage() {
   const { data, error, loading, reload } = useAsyncData(
     () => loadDashboard(createClient()),
     [],
-    { interval: 15000 },
   );
 
   const stats = data?.stats;

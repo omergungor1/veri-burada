@@ -78,7 +78,6 @@ export default function ProjectDetailPage({ params }) {
       return { project, jobIds, counts, progress };
     },
     [id],
-    { interval: 10000 },
   );
 
   async function onToggleProjectStatus() {

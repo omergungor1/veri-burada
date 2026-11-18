@@ -83,7 +83,6 @@ export default function ProjectsPage() {
   const { data, error, loading, reload } = useAsyncData(
     () => listProjects(createClient()),
     [],
-    { interval: 15000 },
   );
   const [actionError, setActionError] = useState("");
   const [busyId, setBusyId] = useState(null);
