@@ -8,6 +8,7 @@ import {
   fetchDetailProgressByProject,
   getProject,
   getProjectBusinesses,
+  getProjectFirstScan,
   getProjectErrors,
   getProjectTaskCounts,
   getProjectTasks,
@@ -22,6 +23,7 @@ import {
   formatNumber,
 } from "@/lib/admin/format";
 import {
+  BackLink,
   Badge,
   Button,
   Card,
@@ -29,6 +31,8 @@ import {
   EmptyState,
   ErrorBox,
   LoadingBlock,
+  inputClass,
+  Modal,
   PageHeader,
   Pagination,
   PhaseProgress,
@@ -39,9 +43,21 @@ import {
   Td,
   TableWrap,
   Th,
+  cx,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import ExportModal from "@/components/export-modal";
+
+const LOCATION_LIMIT = 72;
+
+function shortenLocation(location) {
+  const text = String(location || "").trim();
+  if (text.length <= LOCATION_LIMIT) return { shown: text, long: false };
+  const cut = text.slice(0, LOCATION_LIMIT);
+  const comma = cut.lastIndexOf(",");
+  const shown = (comma > 24 ? cut.slice(0, comma) : cut).trim();
+  return { shown, long: true };
+}
 
 const TABS = [
   { key: "tasks", label: "Arama terimleri" },
@@ -63,6 +79,7 @@ export default function ProjectDetailPage({ params }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [statusBusy, setStatusBusy] = useState(false);
   const [statusError, setStatusError] = useState("");
+  const [locationOpen, setLocationOpen] = useState(false);
 
   const { data, error, loading, reload } = useAsyncData(
     async () => {
@@ -70,12 +87,13 @@ export default function ProjectDetailPage({ params }) {
       const project = await getProject(supabase, id);
       if (!project) return { project: null };
       const jobIds = (project.scan_jobs || []).map((j) => j.id);
-      const [counts, detailByProject] = await Promise.all([
+      const [counts, detailByProject, firstScan] = await Promise.all([
         getProjectTaskCounts(supabase, jobIds),
         fetchDetailProgressByProject(supabase, [project]),
+        getProjectFirstScan(supabase, jobIds),
       ]);
       const progress = summarizeProjectProgress(project, detailByProject[project.id]);
-      return { project, jobIds, counts, progress };
+      return { project, jobIds, counts, progress, firstScan };
     },
     [id],
   );
@@ -103,19 +121,15 @@ export default function ProjectDetailPage({ params }) {
 
   if (data && !data.project) {
     return (
-      <Card>
-        <EmptyState
+      <>
+        <PageHeader
           title="Proje bulunamadı"
-          action={
-            <Link
-              href="/admin/projects"
-              className="text-sm font-medium text-forest hover:underline"
-            >
-              Projelere dön
-            </Link>
-          }
+          leading={<BackLink href="/admin/projects" label="Projelere dön" />}
         />
-      </Card>
+        <Card>
+          <EmptyState title="Proje bulunamadı" />
+        </Card>
+      </>
     );
   }
 
@@ -139,29 +153,47 @@ export default function ProjectDetailPage({ params }) {
   };
   const canPause = project?.status === "active";
   const canResume = project?.status === "paused";
+  const locationText = shortenLocation(project?.location);
+  const locationPlaces = String(project?.location || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
 
   return (
     <>
-      <Link
-        href="/admin/projects"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
-      >
-        <Icon name="chevronLeft" className="h-4 w-4" />
-        Projeler
-      </Link>
-
       <ErrorBox message={error || statusError} onRetry={reload} />
 
       {project ? (
         <>
           <PageHeader
+            leading={<BackLink href="/admin/projects" label="Projelere dön" />}
             title={
               <span className="flex flex-wrap items-center gap-2">
                 {project.name}
                 <StatusBadge status={project.status} />
               </span>
             }
-            description={`${project.keyword} · ${project.location} · ${formatDate(project.created_at)}`}
+            description={
+              <>
+                {project.keyword}
+                {locationText.shown ? ` · ${locationText.shown}` : ""}
+                {locationText.long ? (
+                  <button
+                    type="button"
+                    onClick={() => setLocationOpen(true)}
+                    className="ml-1 font-medium text-forest hover:underline"
+                  >
+                    …
+                  </button>
+                ) : null}
+                <span className="mt-1 block text-xs">
+                  {`Eklendi ${formatDate(project.created_at)}`}
+                  {data?.firstScan
+                    ? ` · İlk tarama ${formatDate(data.firstScan)}`
+                    : ""}
+                </span>
+              </>
+            }
             actions={
               <>
                 {canPause ? (
@@ -236,7 +268,7 @@ export default function ProjectDetailPage({ params }) {
               tone="amber"
             />
             <StatCard label="Detay hata" value={detail.failed} tone={detail.failed ? "red" : undefined} />
-            <StatCard label="İşletme" value={list.found} tone="green" />
+            <StatCard label="İşletme" value={detail.total} tone="green" />
           </div>
 
           <div className="mb-3">
@@ -246,6 +278,26 @@ export default function ProjectDetailPage({ params }) {
           {tab === "tasks" ? <TasksTab jobIds={jobIds} /> : null}
           {tab === "businesses" ? <BusinessesTab jobIds={jobIds} /> : null}
           {tab === "errors" ? <ErrorsTab jobIds={jobIds} /> : null}
+
+          <Modal
+            open={locationOpen}
+            onClose={() => setLocationOpen(false)}
+            title="Lokasyon"
+          >
+            <p className="mb-3 text-sm text-muted">
+              {locationPlaces.length} il
+            </p>
+            <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {locationPlaces.map((name) => (
+                <li
+                  key={name}
+                  className="rounded-md bg-pale px-2 py-1.5 text-sm text-ink"
+                >
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </Modal>
 
           <ExportModal
             open={exportOpen}
@@ -354,40 +406,157 @@ function TasksTab({ jobIds }) {
   );
 }
 
+const DETAIL_FILTERS = [
+  { value: "all", label: "Detay: tümü" },
+  { value: "completed", label: "Detaylı" },
+  { value: "pending", label: "Detay bekliyor" },
+  { value: "claimed", label: "Detay alındı" },
+  { value: "failed", label: "Detay hatalı" },
+];
+
+const PRESENCE_FILTERS = {
+  phone: [
+    { value: "all", label: "Telefon: tümü" },
+    { value: "yes", label: "Telefonu olan" },
+    { value: "no", label: "Telefonu olmayan" },
+  ],
+  website: [
+    { value: "all", label: "Web sitesi: tümü" },
+    { value: "yes", label: "Web sitesi olan" },
+    { value: "no", label: "Web sitesi olmayan" },
+  ],
+};
+
+function FilterSelect({ value, onChange, options, label }) {
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className={cx(inputClass, "w-auto min-w-36")}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function BusinessesTab({ jobIds }) {
   const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [phone, setPhone] = useState("all");
+  const [website, setWebsite] = useState("all");
+  const [detail, setDetail] = useState("all");
   const [page, setPage] = useState(0);
   const debounced = useDebounced(search);
   const key = jobIds.join(",");
+  const filtered =
+    Boolean(from || to || debounced) ||
+    phone !== "all" ||
+    website !== "all" ||
+    detail !== "all";
 
   const { data, error, loading, reload } = useAsyncData(
     () =>
       getProjectBusinesses(createClient(), jobIds, {
         search: debounced,
         page,
+        from,
+        to,
+        phone,
+        website,
+        detail,
       }),
-    [key, debounced, page],
+    [key, debounced, page, from, to, phone, website, detail],
   );
+
+  function resetPage(setter) {
+    return (value) => {
+      setter(value);
+      setPage(0);
+    };
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setFrom("");
+    setTo("");
+    setPhone("all");
+    setWebsite("all");
+    setDetail("all");
+    setPage(0);
+  }
 
   return (
     <Card>
-      <div className="border-b border-border p-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
         <SearchInput
           value={search}
-          onChange={(v) => {
-            setSearch(v);
+          onChange={(value) => {
+            setSearch(value);
             setPage(0);
           }}
           placeholder="İşletme adı, place_id veya ilçe ara..."
-          className="sm:w-80"
+          className="w-full sm:w-72"
         />
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          Başlangıç
+          <input
+            type="date"
+            aria-label="Başlangıç tarihi"
+            value={from}
+            onChange={(event) => resetPage(setFrom)(event.target.value)}
+            className={cx(inputClass, "w-auto")}
+          />
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          Bitiş
+          <input
+            type="date"
+            aria-label="Bitiş tarihi"
+            value={to}
+            onChange={(event) => resetPage(setTo)(event.target.value)}
+            className={cx(inputClass, "w-auto")}
+          />
+        </label>
+        <FilterSelect
+          label="Telefon"
+          value={phone}
+          onChange={resetPage(setPhone)}
+          options={PRESENCE_FILTERS.phone}
+        />
+        <FilterSelect
+          label="Web sitesi"
+          value={website}
+          onChange={resetPage(setWebsite)}
+          options={PRESENCE_FILTERS.website}
+        />
+        <FilterSelect
+          label="Detay"
+          value={detail}
+          onChange={resetPage(setDetail)}
+          options={DETAIL_FILTERS}
+        />
+        {filtered ? (
+          <Button variant="ghost" onClick={clearFilters}>
+            Temizle
+          </Button>
+        ) : null}
       </div>
       <ErrorBox message={error} onRetry={reload} />
       {loading && !data ? <LoadingBlock /> : null}
       {data && data.rows.length === 0 ? (
         <EmptyState
           title="İşletme bulunamadı"
-          description="Liste görevleri tamamlandıkça işletmeler burada görünür."
+          description={
+            filtered
+              ? "Seçili filtrelere uyan işletme yok."
+              : "Liste görevleri tamamlandıkça işletmeler burada görünür."
+          }
         />
       ) : null}
       {data && data.rows.length > 0 ? (
@@ -399,6 +568,7 @@ function BusinessesTab({ jobIds }) {
               <Th>Telefon</Th>
               <Th>Puan</Th>
               <Th>Detay</Th>
+              <Th>Eklendi</Th>
               <Th>Terim</Th>
             </tr>
           </thead>
@@ -436,6 +606,7 @@ function BusinessesTab({ jobIds }) {
                     }
                   />
                 </Td>
+                <Td className="whitespace-nowrap">{formatDate(b.created_at)}</Td>
                 <Td>
                   <Badge>{new Set(b.scan_results.map((r) => r.search_term)).size}</Badge>
                 </Td>

@@ -7,6 +7,7 @@ import { useAsyncData } from "@/lib/admin/hooks";
 import { getBusiness } from "@/lib/admin/businesses";
 import { formatDate, formatNumber } from "@/lib/admin/format";
 import {
+  BackLink,
   Badge,
   ButtonLink,
   Card,
@@ -48,24 +49,24 @@ export default function BusinessDetailPage({ params }) {
 
   return (
     <>
-      <Link
-        href="/admin/businesses"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
-      >
-        <Icon name="chevronLeft" className="h-4 w-4" />
-        İşletmeler
-      </Link>
       <ErrorBox message={error} onRetry={reload} />
 
       {data && !b ? (
-        <Card>
-          <EmptyState title="İşletme bulunamadı" />
-        </Card>
+        <>
+          <PageHeader
+            title="İşletme bulunamadı"
+            leading={<BackLink href="/admin/businesses" label="İşletmelere dön" />}
+          />
+          <Card>
+            <EmptyState title="İşletme bulunamadı" />
+          </Card>
+        </>
       ) : null}
 
       {b ? (
         <>
           <PageHeader
+            leading={<BackLink href="/admin/businesses" label="İşletmelere dön" />}
             title={
               <span className="flex flex-wrap items-center gap-2">
                 {b.name || "(isimsiz)"}

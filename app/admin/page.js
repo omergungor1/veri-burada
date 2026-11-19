@@ -82,8 +82,8 @@ export default function DashboardPage() {
       ) : null}
 
       {data ? (
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <Card>
+        <>
+          <Card className="mt-6">
             <CardHeader
               title="Son projeler"
               action={
@@ -118,6 +118,8 @@ export default function DashboardPage() {
                     completed: 0,
                     failed: 0,
                   };
+                  const finished =
+                    p.status === "completed" || p.status === "cancelled";
                   return (
                     <li key={p.id}>
                       <Link
@@ -130,23 +132,29 @@ export default function DashboardPage() {
                           </span>
                           <StatusBadge status={p.status} />
                         </div>
-                        <div className="mt-2 grid grid-cols-2 gap-3">
-                          <PhaseProgress
-                            label="Liste"
-                            completed={list.completed}
-                            failed={list.failed}
-                            total={list.total}
-                          />
-                          <PhaseProgress
-                            label="Detay"
-                            completed={detail.completed}
-                            failed={detail.failed}
-                            total={detail.total}
-                            emptyLabel="Liste sonrası"
-                          />
-                        </div>
+                        {finished ? null : (
+                          <div className="mt-2 grid grid-cols-2 gap-3">
+                            <PhaseProgress
+                              label="Liste"
+                              completed={list.completed}
+                              failed={list.failed}
+                              total={list.total}
+                            />
+                            <PhaseProgress
+                              label="Detay"
+                              completed={detail.completed}
+                              failed={detail.failed}
+                              total={detail.total}
+                              emptyLabel="Liste sonrası"
+                            />
+                          </div>
+                        )}
                         <p className="mt-1 text-xs text-muted">
-                          {list.found || 0} işletme · {formatDate(p.created_at)}
+                          {detail.total || 0} işletme
+                          {detail.failed > 0
+                            ? ` · ${detail.failed} hata`
+                            : ""}
+                          {` · ${formatDate(p.created_at)}`}
                         </p>
                       </Link>
                     </li>
@@ -156,12 +164,17 @@ export default function DashboardPage() {
             )}
           </Card>
 
-          <Card>
-            <CardHeader title="Son hatalar" subtitle="scrape_errors" />
+          <details className="mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+              Son hatalar
+              <span className="text-xs font-normal text-muted">
+                {data.errors.length}
+              </span>
+            </summary>
             {data.errors.length === 0 ? (
               <EmptyState title="Hata kaydı yok" />
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-border border-t border-border">
                 {data.errors.map((e) => (
                   <li key={e.id} className="px-4 py-3">
                     <div className="flex items-center justify-between gap-2">
@@ -185,8 +198,8 @@ export default function DashboardPage() {
                 ))}
               </ul>
             )}
-          </Card>
-        </div>
+          </details>
+        </>
       ) : null}
     </>
   );

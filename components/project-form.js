@@ -1,0 +1,414 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { createProject } from "@/lib/admin/projects";
+import { errorMessage, formatNumber } from "@/lib/admin/format";
+import {
+  PROVINCES,
+  countDistricts,
+  generateSearchTerms,
+  parseKeywords,
+} from "@/lib/admin/keyword-planner";
+import {
+  BackLink,
+  Button,
+  Card,
+  CardHeader,
+  ErrorBox,
+  Field,
+  PageHeader,
+  SearchInput,
+  cx,
+  inputClass,
+} from "@/components/ui";
+import { Icon } from "@/components/icons";
+
+const PREVIEW_LIMIT = 200;
+const WARN_THRESHOLD = 5000;
+
+export default function ProjectForm({
+  initial,
+  embedded = false,
+  onCreated,
+  cancelHref = "/admin/projects",
+}) {
+  const router = useRouter();
+  const seed = initial || {};
+
+  const [name, setName] = useState(seed.name || "");
+  const [keyword, setKeyword] = useState(seed.keyword || "");
+  const [location, setLocation] = useState(seed.location || "");
+  const [locationTouched, setLocationTouched] = useState(
+    Boolean(seed.locationTouched),
+  );
+
+  const [selected, setSelected] = useState(seed.provinceIds || []);
+  const [provinceQuery, setProvinceQuery] = useState("");
+  const [keywordsText, setKeywordsText] = useState(seed.keywordsText || "");
+  const [excludeMerkez, setExcludeMerkez] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [excluded, setExcluded] = useState(() => new Set());
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const districts = seed.districts || [];
+  const termOptions = useMemo(
+    () => ({ excludeMerkez, districts }),
+    [excludeMerkez, districts],
+  );
+
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+
+  const autoLocation = useMemo(
+    () =>
+      PROVINCES.filter((p) => selectedSet.has(p.id))
+        .map((p) => p.name)
+        .join(", "),
+    [selectedSet],
+  );
+  const locationValue = locationTouched ? location : autoLocation;
+
+  const keywords = useMemo(() => {
+    const parsed = parseKeywords(keywordsText);
+    if (parsed.length > 0) return parsed;
+    return parseKeywords(keyword);
+  }, [keywordsText, keyword]);
+
+  const generatedTerms = useMemo(
+    () => generateSearchTerms(keywords, selected, termOptions),
+    [keywords, selected, termOptions],
+  );
+
+  const terms = useMemo(() => {
+    if (excluded.size === 0) return generatedTerms;
+    return generatedTerms.filter((t) => !excluded.has(t));
+  }, [generatedTerms, excluded]);
+
+  const districtCount = useMemo(
+    () => countDistricts(selected, termOptions),
+    [selected, termOptions],
+  );
+
+  const filteredProvinces = useMemo(() => {
+    const q = provinceQuery.trim().toLocaleLowerCase("tr");
+    if (!q) return PROVINCES;
+    return PROVINCES.filter((p) => p.name.toLocaleLowerCase("tr").includes(q));
+  }, [provinceQuery]);
+
+  function toggleProvince(id) {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  function selectFiltered() {
+    setSelected((prev) => [
+      ...new Set([...prev, ...filteredProvinces.map((p) => p.id)]),
+    ]);
+  }
+
+  function clearSelection() {
+    setSelected([]);
+  }
+
+  function excludeTerm(term) {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      next.add(term);
+      return next;
+    });
+  }
+
+  function restoreExcluded() {
+    setExcluded(new Set());
+  }
+
+  const visibleTerms = terms.slice(0, showAll ? 2000 : PREVIEW_LIMIT);
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!name.trim()) return setError("Proje adı gerekli.");
+    if (!keyword.trim()) return setError("Ana anahtar kelime gerekli.");
+    if (!locationValue.trim()) return setError("Lokasyon gerekli.");
+    if (selected.length === 0) return setError("En az bir il seçin.");
+    if (terms.length === 0) return setError("Üretilecek arama terimi yok.");
+    if (
+      terms.length > WARN_THRESHOLD &&
+      !window.confirm(
+        `${formatNumber(terms.length)} arama terimi oluşturulacak. Devam edilsin mi?`,
+      )
+    ) {
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await createProject(createClient(), {
+        name: name.trim(),
+        keyword: keyword.trim(),
+        location: locationValue.trim(),
+        searchTerms: terms,
+      });
+      if (onCreated) {
+        await onCreated(result);
+        setSubmitting(false);
+      } else {
+        const id = result?.project?.id;
+        router.push(id ? `/admin/projects/${id}` : "/admin/projects");
+      }
+    } catch (err) {
+      setError(errorMessage(err));
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit}>
+      {embedded ? null : (
+        <PageHeader
+          title="Yeni proje"
+          description="Proje bilgilerini girin, il ve anahtar kelimelerden arama terimlerini üretin."
+          leading={<BackLink href={cancelHref} label="Projelere dön" />}
+        />
+      )}
+
+      <ErrorBox message={error} />
+
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="space-y-4 lg:col-span-3">
+          <Card>
+            <CardHeader title="Proje bilgileri" />
+            <div className="grid gap-4 p-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Field label="Proje adı" htmlFor="name">
+                  <input
+                    id="name"
+                    className={inputClass}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Örn. Marmara Kuaförler"
+                    required
+                  />
+                </Field>
+              </div>
+              <Field
+                label="Ana anahtar kelime"
+                htmlFor="keyword"
+                hint="Anahtar kelime listesi boşsa bu kelime kullanılır."
+              >
+                <input
+                  id="keyword"
+                  className={inputClass}
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder="Örn. kuaför"
+                  required
+                />
+              </Field>
+              <Field
+                label="Lokasyon"
+                htmlFor="location"
+                hint="Seçilen illerden otomatik doldurulur."
+              >
+                <input
+                  id="location"
+                  className={inputClass}
+                  value={locationValue}
+                  onChange={(e) => {
+                    setLocationTouched(true);
+                    setLocation(e.target.value);
+                  }}
+                  placeholder="Örn. İstanbul"
+                  required
+                />
+              </Field>
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Anahtar kelimeler"
+              subtitle="Her satıra veya virgülle ayırarak bir kelime yazın"
+            />
+            <div className="space-y-3 p-4">
+              <textarea
+                className={cx(inputClass, "min-h-28 resize-y")}
+                value={keywordsText}
+                onChange={(e) => setKeywordsText(e.target.value)}
+                placeholder={"kuaför\nberber\ngüzellik salonu"}
+              />
+              <label className="flex items-center gap-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={excludeMerkez}
+                  onChange={(e) => setExcludeMerkez(e.target.checked)}
+                  className="h-4 w-4 accent-green"
+                />
+                &quot;Merkez&quot; ilçelerini hariç tut
+              </label>
+              {districts.length ? (
+                <p className="text-xs text-muted">
+                  Talepte seçilen ilçeler kullanılıyor. İlçesi seçilmemiş illerin
+                  tüm ilçeleri taramaya girer.
+                </p>
+              ) : null}
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="İller"
+              subtitle={`${selected.length} il seçili · ${formatNumber(districtCount)} ilçe`}
+              action={
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={selectFiltered}>
+                    {provinceQuery.trim() ? "Filtrelenenleri seç" : "Tümünü seç"}
+                  </Button>
+                  <Button size="sm" onClick={clearSelection} disabled={!selected.length}>
+                    Temizle
+                  </Button>
+                </div>
+              }
+            />
+            <div className="p-4">
+              <SearchInput
+                value={provinceQuery}
+                onChange={setProvinceQuery}
+                placeholder="İl ara..."
+                className="mb-3"
+              />
+              <div className="thin-scroll grid max-h-80 grid-cols-2 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-3">
+                {filteredProvinces.map((p) => {
+                  const on = selectedSet.has(p.id);
+                  return (
+                    <label
+                      key={p.id}
+                      className={cx(
+                        "flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors",
+                        on
+                          ? "border-green bg-pale text-forest"
+                          : "border-border text-ink hover:bg-pale",
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => toggleProvince(p.id)}
+                        className="h-4 w-4 accent-green"
+                      />
+                      <span className="truncate">{p.name}</span>
+                    </label>
+                  );
+                })}
+                {filteredProvinces.length === 0 ? (
+                  <p className="col-span-full py-4 text-center text-sm text-muted">
+                    İl bulunamadı
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-2">
+          <Card className={embedded ? "" : "lg:sticky lg:top-20"}>
+            <CardHeader
+              title="Önizleme"
+              subtitle={`${keywords.length} kelime × ${formatNumber(districtCount)} ilçe`}
+            />
+            <div className="p-4">
+              <div className="mb-3 flex items-baseline justify-between">
+                <span className="text-sm text-muted">Toplam arama terimi</span>
+                <span
+                  className={cx(
+                    "text-2xl font-semibold tabular-nums",
+                    terms.length > WARN_THRESHOLD ? "text-mint" : "text-green",
+                  )}
+                >
+                  {formatNumber(terms.length)}
+                </span>
+              </div>
+              {excluded.size > 0 ? (
+                <div className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-pale px-3 py-2 text-xs text-muted">
+                  <span>{formatNumber(excluded.size)} terim listeden çıkarıldı</span>
+                  <button
+                    type="button"
+                    onClick={restoreExcluded}
+                    className="font-medium text-forest hover:underline"
+                  >
+                    Geri al
+                  </button>
+                </div>
+              ) : null}
+              {terms.length > WARN_THRESHOLD ? (
+                <p className="mb-3 rounded-lg bg-pale px-3 py-2 text-xs text-forest">
+                  Çok fazla arama terimi. Daha az il veya anahtar kelime seçmeyi
+                  düşünün.
+                </p>
+              ) : null}
+
+              {terms.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted">
+                  {generatedTerms.length > 0
+                    ? "Tüm terimler çıkarıldı. Geri al ile geri getirebilirsiniz."
+                    : "İl seçin ve anahtar kelime girin; terimler burada görünecek."}
+                </p>
+              ) : (
+                <>
+                  <ul className="thin-scroll max-h-72 divide-y divide-border overflow-y-auto rounded-lg border border-border text-sm">
+                    {visibleTerms.map((t, i) => (
+                      <li
+                        key={`${t}-${i}`}
+                        className="group flex items-center gap-2 px-3 py-1.5 text-ink"
+                      >
+                        <span className="min-w-0 flex-1 truncate" title={t}>
+                          {t}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => excludeTerm(t)}
+                          title="Listeden çıkar"
+                          aria-label={`${t} terimini listeden çıkar`}
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                        >
+                          <Icon name="close" className="h-3.5 w-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {terms.length > PREVIEW_LIMIT ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAll((v) => !v)}
+                      className="mt-2 text-xs font-medium text-forest hover:underline"
+                    >
+                      {showAll
+                        ? "İlk 200'ü göster"
+                        : "Daha fazla göster (en fazla 2.000)"}
+                    </button>
+                  ) : null}
+                </>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                className="mt-4 w-full"
+                disabled={submitting || terms.length === 0}
+              >
+                {submitting
+                  ? "Oluşturuluyor..."
+                  : `Projeyi oluştur (${formatNumber(terms.length)} görev)`}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </form>
+  );
+}

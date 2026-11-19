@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { formatNumber, statusInfo } from "@/lib/admin/format";
@@ -48,8 +48,8 @@ export function CardHeader({ title, subtitle, action, className }) {
 export function PageHeader({ title, description, actions, leading }) {
   return (
     <div className="mb-5 flex shrink-0 items-start gap-3 sm:justify-between">
-      <div className="flex min-w-0 items-start gap-2">
-        {leading ? <div className="mt-0.5 shrink-0">{leading}</div> : null}
+      <div className="flex min-w-0 items-center gap-3">
+        {leading ? <div className="shrink-0">{leading}</div> : null}
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
             {title}
@@ -93,21 +93,25 @@ export function buttonClass(variant = "secondary", size = "md", className) {
   );
 }
 
-export function Button({
-  variant = "secondary",
-  size = "md",
-  className,
-  type = "button",
-  ...rest
-}) {
+export const Button = forwardRef(function Button(
+  {
+    variant = "secondary",
+    size = "md",
+    className,
+    type = "button",
+    ...rest
+  },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type={type}
       className={buttonClass(variant, size, className)}
       {...rest}
     />
   );
-}
+});
 
 export function ButtonLink({
   variant = "secondary",
@@ -116,6 +120,20 @@ export function ButtonLink({
   ...rest
 }) {
   return <Link className={buttonClass(variant, size, className)} {...rest} />;
+}
+
+/** Alt sayfalarda başlığın solundaki geri butonu. */
+export function BackLink({ href, label = "Geri" }) {
+  return (
+    <ButtonLink
+      href={href}
+      aria-label={label}
+      title={label}
+      className="h-11 w-11 shrink-0 p-0"
+    >
+      <Icon name="chevronLeft" className="h-5 w-5" />
+    </ButtonLink>
+  );
 }
 
 /* ------------------------------ Form -------------------------------- */
@@ -475,7 +493,7 @@ export function Toast({ message, tone = "green", onClose }) {
   );
 }
 
-export function Modal({ open, onClose, title, children, footer }) {
+export function Modal({ open, onClose, title, children, footer, wide = false }) {
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
@@ -503,7 +521,10 @@ export function Modal({ open, onClose, title, children, footer }) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex max-h-[90dvh] w-full flex-col rounded-t-2xl border border-border bg-white shadow-xl sm:max-w-lg sm:rounded-2xl"
+        className={cx(
+          "flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-border bg-white shadow-xl sm:rounded-2xl",
+          wide ? "sm:max-w-6xl" : "sm:max-w-lg",
+        )}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 className="text-base font-semibold text-ink">{title}</h3>

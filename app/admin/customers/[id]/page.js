@@ -18,9 +18,9 @@ import {
   TX_TYPE_LABELS,
 } from "@/lib/panel/format";
 import {
+  BackLink,
   Badge,
   Button,
-  ButtonLink,
   Card,
   CardHeader,
   EmptyState,
@@ -84,7 +84,7 @@ export default function AdminCustomerDetailPage() {
       <PageHeader
         title={profile?.full_name || "Müşteri"}
         description={profile?.email}
-        actions={<ButtonLink href="/admin/customers">Müşterilere dön</ButtonLink>}
+        leading={<BackLink href="/admin/customers" label="Müşterilere dön" />}
       />
       <ErrorBox message={error} onRetry={reload} />
       {msg ? (

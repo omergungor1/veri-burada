@@ -35,6 +35,34 @@ function projectProgress(p) {
   );
 }
 
+function projectFinished(status) {
+  return status === "completed" || status === "cancelled";
+}
+
+function ScanSummary({ label, completed, failed, total, active, emptyLabel }) {
+  if (active) {
+    return (
+      <PhaseProgress
+        label={label}
+        completed={completed}
+        failed={failed}
+        total={total}
+        emptyLabel={emptyLabel}
+        className="min-w-0"
+      />
+    );
+  }
+  if (!total) return <span className="text-sm text-muted">—</span>;
+  return (
+    <p className="text-sm tabular-nums text-muted">
+      {formatNumber(completed)}/{formatNumber(total)}
+      {failed > 0 ? (
+        <span className="text-red-600"> · {formatNumber(failed)} hata</span>
+      ) : null}
+    </p>
+  );
+}
+
 function failureCount(p) {
   const { list, detail } = projectProgress(p);
   return (list.failed || 0) + (detail.failed || 0);
@@ -192,23 +220,31 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                   <Link href={`/admin/projects/${p.id}`} className="mt-3 block">
-                    <div className="grid grid-cols-2 gap-3">
-                      <PhaseProgress
-                        label="Liste"
-                        completed={list.completed}
-                        failed={list.failed}
-                        total={list.total}
-                      />
-                      <PhaseProgress
-                        label="Detay"
-                        completed={detail.completed}
-                        failed={detail.failed}
-                        total={detail.total}
-                        emptyLabel="Liste sonrası"
-                      />
-                    </div>
-                    <p className="mt-2 text-xs text-muted">
-                      {formatNumber(list.found)} işletme · {projectScanDuration(p)}
+                    {projectFinished(p.status) ? null : (
+                      <div className="mb-2 grid grid-cols-2 gap-3">
+                        <ScanSummary
+                          label="Liste"
+                          completed={list.completed}
+                          failed={list.failed}
+                          total={list.total}
+                          active
+                        />
+                        <ScanSummary
+                          label="Detay"
+                          completed={detail.completed}
+                          failed={detail.failed}
+                          total={detail.total}
+                          emptyLabel="Liste sonrası"
+                          active
+                        />
+                      </div>
+                    )}
+                    <p className="text-xs text-muted">
+                      {formatNumber(detail.total)} işletme
+                      {detail.failed > 0
+                        ? ` · ${formatNumber(detail.failed)} hata`
+                        : ""}
+                      {` · ${projectScanDuration(p)}`}
                     </p>
                   </Link>
                 </Card>
@@ -257,25 +293,25 @@ export default function ProjectsPage() {
                         <StatusBadge status={p.status} />
                       </Td>
                       <Td>
-                        <PhaseProgress
+                        <ScanSummary
                           label="Liste"
                           completed={list.completed}
                           failed={list.failed}
                           total={list.total}
-                          className="min-w-0"
+                          active={!projectFinished(p.status)}
                         />
                       </Td>
                       <Td>
-                        <PhaseProgress
+                        <ScanSummary
                           label="Detay"
                           completed={detail.completed}
                           failed={detail.failed}
                           total={detail.total}
-                          className="min-w-0"
                           emptyLabel="Liste sonrası"
+                          active={!projectFinished(p.status)}
                         />
                       </Td>
-                      <Td className="tabular-nums">{formatNumber(list.found)}</Td>
+                      <Td className="tabular-nums">{formatNumber(detail.total)}</Td>
                       <Td className="whitespace-nowrap tabular-nums text-muted">
                         {projectScanDuration(p)}
                       </Td>

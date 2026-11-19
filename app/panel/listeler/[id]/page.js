@@ -13,6 +13,7 @@ import {
   listStatus,
 } from "@/lib/panel/format";
 import {
+  BackLink,
   Badge,
   Button,
   ButtonLink,
@@ -111,17 +112,7 @@ export default function ListDetailPage() {
       <PageHeader
         title={list?.title || "Liste"}
         description={st.hint}
-        leading={
-          <ButtonLink
-            href="/panel/listeler"
-            size="sm"
-            className="px-2"
-            aria-label="Listelerime dön"
-            title="Listelerime dön"
-          >
-            <Icon name="chevronLeft" className="h-5 w-5" />
-          </ButtonLink>
-        }
+        leading={<BackLink href="/panel/listeler" label="Listelerime dön" />}
       />
       <ErrorBox message={error || actionError} onRetry={reload} />
       {loading && !data ? <LoadingBlock /> : null}

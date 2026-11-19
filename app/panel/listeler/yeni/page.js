@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createListRequest } from "@/lib/panel/api";
 import { errorMessage } from "@/lib/admin/format";
 import ListRequestForm from "@/components/list-request-form";
-import { Button, ButtonLink, ErrorBox, Modal, PageHeader } from "@/components/ui";
+import { BackLink, Button, ButtonLink, ErrorBox, Modal, PageHeader } from "@/components/ui";
 
 export default function NewListPage() {
   const router = useRouter();
@@ -31,6 +31,7 @@ export default function NewListPage() {
       <PageHeader
         title="Yeni liste"
         description="Adım adım bölge ve sektörü seç, liste talebini oluşturalım."
+        leading={<BackLink href="/panel/listeler" label="Listelerime dön" />}
       />
       <ErrorBox message={error} />
       <ListRequestForm submitting={submitting} onSubmit={onSubmit} />
