@@ -191,9 +191,14 @@ export default function BusinessDetailPage({ params }) {
           </div>
 
           {data.errors.length > 0 ? (
-            <Card className="mt-4">
-              <CardHeader title="Hatalar" />
-              <ul className="divide-y divide-border">
+            <details className="mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+                Hatalar
+                <span className="text-xs font-normal text-muted">
+                  {data.errors.length}
+                </span>
+              </summary>
+              <ul className="divide-y divide-border border-t border-border">
                 {data.errors.map((e) => (
                   <li key={e.id} className="px-4 py-2.5 text-sm">
                     <div className="flex items-center gap-2">
@@ -202,13 +207,11 @@ export default function BusinessDetailPage({ params }) {
                         {formatDate(e.created_at)}
                       </span>
                     </div>
-                    <p className="mt-1 break-words text-ink">
-                      {e.message}
-                    </p>
+                    <p className="mt-1 break-words text-ink">{e.message}</p>
                   </li>
                 ))}
               </ul>
-            </Card>
+            </details>
           ) : null}
         </>
       ) : null}

@@ -407,45 +407,73 @@ function TasksTab({ jobIds }) {
 }
 
 const DETAIL_FILTERS = [
-  { value: "all", label: "Detay: tümü" },
+  { value: "all", label: "Tümü" },
   { value: "completed", label: "Detaylı" },
-  { value: "pending", label: "Detay bekliyor" },
-  { value: "claimed", label: "Detay alındı" },
-  { value: "failed", label: "Detay hatalı" },
+  { value: "pending", label: "Bekliyor" },
+  { value: "claimed", label: "Alındı" },
+  { value: "failed", label: "Hatalı" },
 ];
 
-const PRESENCE_FILTERS = {
-  phone: [
-    { value: "all", label: "Telefon: tümü" },
-    { value: "yes", label: "Telefonu olan" },
-    { value: "no", label: "Telefonu olmayan" },
-  ],
-  website: [
-    { value: "all", label: "Web sitesi: tümü" },
-    { value: "yes", label: "Web sitesi olan" },
-    { value: "no", label: "Web sitesi olmayan" },
-  ],
-};
+const PRESENCE_FILTERS = [
+  { value: "all", label: "Tümü" },
+  { value: "yes", label: "Var" },
+  { value: "no", label: "Yok" },
+];
 
-function FilterSelect({ value, onChange, options, label }) {
+const QUICK_RANGES = [
+  { id: "7d", label: "Son 7 gün", days: 7 },
+  { id: "1m", label: "Son 1 ay", months: 1 },
+  { id: "2m", label: "Son 2 ay", months: 2 },
+  { id: "3m", label: "Son 3 ay", months: 3 },
+];
+
+function dateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function quickRange(range) {
+  const end = new Date();
+  const start = new Date();
+  if (range.months) start.setMonth(start.getMonth() - range.months);
+  if (range.days) start.setDate(start.getDate() - range.days);
+  return { from: dateInputValue(start), to: dateInputValue(end) };
+}
+
+function ChoiceGroup({ label, value, onChange, options }) {
   return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className={cx(inputClass, "w-auto min-w-36")}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+    <div className="min-w-0">
+      <p className="mb-1.5 text-xs font-medium text-ink">{label}</p>
+      <div className="flex flex-wrap gap-1">
+        {options.map((option) => {
+          const active = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(option.value)}
+              className={cx(
+                "rounded-lg px-2.5 py-1.5 text-xs font-medium",
+                active
+                  ? "bg-green text-white"
+                  : "bg-white text-ink ring-1 ring-border hover:bg-pale",
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
 function BusinessesTab({ jobIds }) {
   const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [phone, setPhone] = useState("all");
@@ -454,11 +482,12 @@ function BusinessesTab({ jobIds }) {
   const [page, setPage] = useState(0);
   const debounced = useDebounced(search);
   const key = jobIds.join(",");
-  const filtered =
-    Boolean(from || to || debounced) ||
-    phone !== "all" ||
-    website !== "all" ||
-    detail !== "all";
+  const panelCount =
+    (from || to ? 1 : 0) +
+    (phone !== "all" ? 1 : 0) +
+    (website !== "all" ? 1 : 0) +
+    (detail !== "all" ? 1 : 0);
+  const filtered = Boolean(debounced) || panelCount > 0;
 
   const { data, error, loading, reload } = useAsyncData(
     () =>
@@ -481,8 +510,7 @@ function BusinessesTab({ jobIds }) {
     };
   }
 
-  function clearFilters() {
-    setSearch("");
+  function clearPanelFilters() {
     setFrom("");
     setTo("");
     setPhone("all");
@@ -491,9 +519,16 @@ function BusinessesTab({ jobIds }) {
     setPage(0);
   }
 
+  function applyQuickRange(range) {
+    const next = quickRange(range);
+    setFrom(next.from);
+    setTo(next.to);
+    setPage(0);
+  }
+
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
+      <div className="flex items-center gap-2 border-b border-border p-3">
         <SearchInput
           value={search}
           onChange={(value) => {
@@ -501,52 +536,102 @@ function BusinessesTab({ jobIds }) {
             setPage(0);
           }}
           placeholder="İşletme adı, place_id veya ilçe ara..."
-          className="w-full sm:w-72"
+          className="min-w-0 flex-1"
         />
-        <label className="flex items-center gap-1.5 text-xs text-muted">
-          Başlangıç
-          <input
-            type="date"
-            aria-label="Başlangıç tarihi"
-            value={from}
-            onChange={(event) => resetPage(setFrom)(event.target.value)}
-            className={cx(inputClass, "w-auto")}
-          />
-        </label>
-        <label className="flex items-center gap-1.5 text-xs text-muted">
-          Bitiş
-          <input
-            type="date"
-            aria-label="Bitiş tarihi"
-            value={to}
-            onChange={(event) => resetPage(setTo)(event.target.value)}
-            className={cx(inputClass, "w-auto")}
-          />
-        </label>
-        <FilterSelect
-          label="Telefon"
-          value={phone}
-          onChange={resetPage(setPhone)}
-          options={PRESENCE_FILTERS.phone}
-        />
-        <FilterSelect
-          label="Web sitesi"
-          value={website}
-          onChange={resetPage(setWebsite)}
-          options={PRESENCE_FILTERS.website}
-        />
-        <FilterSelect
-          label="Detay"
-          value={detail}
-          onChange={resetPage(setDetail)}
-          options={DETAIL_FILTERS}
-        />
-        {filtered ? (
-          <Button variant="ghost" onClick={clearFilters}>
-            Temizle
-          </Button>
-        ) : null}
+        <Button
+          variant={panelCount ? "primary" : "secondary"}
+          className="shrink-0"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((open) => !open)}
+        >
+          <Icon name="filter" className="h-4 w-4" />
+          Filtre
+          {panelCount ? (
+            <span className="rounded-full bg-white/25 px-1.5 text-xs tabular-nums">
+              {panelCount}
+            </span>
+          ) : null}
+        </Button>
       </div>
+      {filtersOpen ? (
+        <div className="space-y-4 border-b border-border bg-pale/50 px-3 py-3">
+          <div>
+            <p className="text-xs font-medium text-ink">Ekleme tarihi</p>
+            <p className="mt-0.5 text-xs text-muted">
+              İşletme kaydının oluşturulduğu gün. Seçilen günler de dahildir.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {QUICK_RANGES.map((range) => {
+                const next = quickRange(range);
+                const active = from === next.from && to === next.to;
+                return (
+                  <button
+                    key={range.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => applyQuickRange(range)}
+                    className={cx(
+                      "rounded-lg px-2.5 py-1.5 text-xs font-medium",
+                      active
+                        ? "bg-green text-white"
+                        : "bg-white text-ink ring-1 ring-border hover:bg-pale",
+                    )}
+                  >
+                    {range.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <label className="min-w-0">
+                <span className="mb-1 block text-xs text-muted">Başlangıç</span>
+                <input
+                  type="date"
+                  aria-label="Ekleme tarihi başlangıç"
+                  value={from}
+                  onChange={(event) => resetPage(setFrom)(event.target.value)}
+                  className={inputClass}
+                />
+              </label>
+              <label className="min-w-0">
+                <span className="mb-1 block text-xs text-muted">Bitiş</span>
+                <input
+                  type="date"
+                  aria-label="Ekleme tarihi bitiş"
+                  value={to}
+                  onChange={(event) => resetPage(setTo)(event.target.value)}
+                  className={inputClass}
+                />
+              </label>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <ChoiceGroup
+              label="Telefon"
+              value={phone}
+              onChange={resetPage(setPhone)}
+              options={PRESENCE_FILTERS}
+            />
+            <ChoiceGroup
+              label="Web sitesi"
+              value={website}
+              onChange={resetPage(setWebsite)}
+              options={PRESENCE_FILTERS}
+            />
+            <ChoiceGroup
+              label="Detay durumu"
+              value={detail}
+              onChange={resetPage(setDetail)}
+              options={DETAIL_FILTERS}
+            />
+          </div>
+          {panelCount ? (
+            <Button variant="ghost" size="sm" onClick={clearPanelFilters}>
+              Filtreleri temizle
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       <ErrorBox message={error} onRetry={reload} />
       {loading && !data ? <LoadingBlock /> : null}
       {data && data.rows.length === 0 ? (

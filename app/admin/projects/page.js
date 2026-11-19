@@ -4,7 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAsyncData } from "@/lib/admin/hooks";
-import { listProjects, retryProjectFailures } from "@/lib/admin/projects";
+import {
+  listProjects,
+  requeueProjectList,
+  retryProjectFailures,
+} from "@/lib/admin/projects";
 import { formatDate, formatNumber, projectScanDuration } from "@/lib/admin/format";
 import {
   ActionMenu,
@@ -113,14 +117,56 @@ export default function ProjectsPage() {
     [],
   );
   const [actionError, setActionError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [exportProject, setExportProject] = useState(null);
   const [metaProject, setMetaProject] = useState(null);
+
+  async function onRescan(project) {
+    if (busyId || project.status === "cancelled") return;
+    const total = projectProgress(project).list.total;
+    if (!total) {
+      setNotice("");
+      setActionError("Bu projede yeniden kuyruğa alınacak liste taraması yok.");
+      return;
+    }
+    const ok = window.confirm(
+      `${project.name}\n\n${formatNumber(total)} liste taraması bekleyen kuyruğa alınsın mı?\n\nDaha önce detayı alınmış işletmeler tekrar detaya girmez. Yalnızca yeni bulunan işletmeler detay kuyruğuna eklenir.`,
+    );
+    if (!ok) return;
+    setActionError("");
+    setNotice("");
+    setBusyId(project.id);
+    try {
+      const res = await requeueProjectList(createClient(), project.id);
+      const n = Number(res?.list_requeued) || 0;
+      if (!n) {
+        setNotice("Liste taramaları zaten bekliyor.");
+      } else {
+        setNotice(
+          `${formatNumber(n)} liste taraması bekleyen kuyruğa alındı. Yeni işletme çıkarsa detay kuyruğuna eklenir.`,
+        );
+      }
+      await reload();
+    } catch (e) {
+      const message = e?.message || "";
+      if (/admin_requeue_project_list|PGRST202|schema cache/i.test(message)) {
+        setActionError(
+          "Tekrar tarama henüz veritabanında yok. supabase/migrations/20261119160000_requeue_project_list.sql dosyasını SQL editöründe çalıştır.",
+        );
+      } else {
+        setActionError(message || "Liste taramaları kuyruğa alınamadı");
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   async function onRetryFailures(project) {
     const n = failureCount(project);
     if (!n || busyId) return;
     setActionError("");
+    setNotice("");
     setBusyId(project.id);
     try {
       const res = await retryProjectFailures(createClient(), project.id);
@@ -137,8 +183,16 @@ export default function ProjectsPage() {
 
   function menuItems(p) {
     const fails = failureCount(p);
+    const listTotal = projectProgress(p).list.total;
     const jobIds = (p.scan_jobs || []).map((j) => j.id);
     return [
+      {
+        key: "rescan",
+        label: busyId === p.id ? "Kuyruğa alınıyor…" : "Tekrar tara",
+        icon: "refresh",
+        disabled: busyId === p.id || p.status === "cancelled" || !listTotal,
+        onClick: () => onRescan(p),
+      },
       {
         key: "export-csv",
         label: "CSV dışa aktar",
@@ -181,6 +235,11 @@ export default function ProjectsPage() {
         }
       />
       <ErrorBox message={error || actionError} onRetry={reload} />
+      {notice ? (
+        <p className="mb-3 rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink">
+          {notice}
+        </p>
+      ) : null}
       {loading && !data ? <LoadingBlock /> : null}
 
       {data && data.length === 0 ? (
